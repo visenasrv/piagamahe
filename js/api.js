@@ -45,6 +45,18 @@
       }
     },
 
+    /** GET publik (tanpa login), mis. status formulir orang tua. */
+    async get(params) {
+      if (DEMO) return Mock.handle(Object.assign({}, params));
+      try {
+        const q = Object.keys(params).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+        const res = await fetch(GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + q, { method: 'GET', cache: 'no-store' });
+        return JSON.parse(await res.text());
+      } catch (e) {
+        return { success: false, network: true, message: navigator.onLine ? 'Gagal terhubung ke server. Coba lagi.' : 'Tidak ada koneksi internet.' };
+      }
+    },
+
     /** "Bangunkan" server GAS (cold start) agar simpan berikutnya cepat. Maks. 1x per 3 menit. */
     lastWarm: 0,
     warmup(force) {
@@ -167,6 +179,11 @@
     load() {
       if (this.db) return this.db;
       this.db = U.ls.get(MKEY, null) || this.seed();
+      const d = this.db;
+      if (!d.siswa) d.siswa = this.seedSiswa(d.records);
+      if (!d.formulir) d.formulir = { aktif: true, kode: 'demo' + Math.random().toString(36).slice(2, 10) };
+      if (d.templates.ahe.unit === undefined) d.templates.ahe.unit = 'Unit Sangatta Utara';
+      if (d.templates.ala.desa === undefined) d.templates.ala.desa = 'Teluk Lingga';
       return this.db;
     },
     persist() { U.ls.set(MKEY, this.db); },
@@ -202,7 +219,7 @@
       const db = {
         account: { username: 'admin', password: 'ahe12345', mustChange: true },
         records: recs,
-        templates: { ahe: { nomor: `${pad(noAhe)}/AHE-SGT/${r}/${now.getFullYear()}`, kepala: 'Hj. Sri Wahyuni, S.Pd.' }, ala: { nomor: `${pad(noAla)}/ALA-SGT/${r}/${now.getFullYear()}`, kepala: 'Hj. Sri Wahyuni, S.Pd.' }, autoNomor: true },
+        templates: { ahe: { nomor: `${pad(noAhe)}/AHE-SGT/${r}/${now.getFullYear()}`, kepala: 'Hj. Sri Wahyuni, S.Pd.', unit: 'Unit Sangatta Utara' }, ala: { nomor: `${pad(noAla)}/ALA-SGT/${r}/${now.getFullYear()}`, kepala: 'Hj. Sri Wahyuni, S.Pd.', desa: 'Teluk Lingga' }, autoNomor: true },
         layouts: { ahe: null, ala: null },
         files: { ahe: null, ala: null },
         tokens: []
@@ -210,15 +227,32 @@
       this.db = db; this.persist();
       return db;
     },
+    seedSiswa(records) {
+      // 2 siswa yang sudah punya piagam (cocok nama) + 4 siswa baru dari formulir orang tua
+      const ada = (records.ahe || []).slice(-2).map((r) => ({ id: U.uuid(), nama: r.nama, tempat: 'Sangatta', tglLahir: '2018-03-14', createdAt: r.createdAt }));
+      const baru = [['nabila putri ramadhani', 'Sangatta', '2018-07-02'], ['Muhammad Rafi Al-Fatih', 'Bontang', '2017-11-20'], ['AISYAH KIRANA', 'Sangatta', '2019-01-09'], ['Dimas Saputra', 'Bengalon', '2018-02-25']]
+        .map(([nama, tempat, tgl], i) => ({ id: U.uuid(), nama, tempat, tglLahir: tgl, createdAt: new Date(Date.now() - i * 3600e3).toISOString() }));
+      return ada.concat(baru);
+    },
     delay() { return new Promise((r) => setTimeout(r, 350 + Math.random() * 450)); },
     boot() {
       const d = this.db;
-      return { user: { username: d.account.username }, mustChange: d.account.mustChange, records: JSON.parse(JSON.stringify(d.records)), templates: JSON.parse(JSON.stringify(d.templates)), layouts: d.layouts, templateFiles: d.files, serverTime: new Date().toISOString() };
+      return { user: { username: d.account.username }, mustChange: d.account.mustChange, records: JSON.parse(JSON.stringify(d.records)), siswa: JSON.parse(JSON.stringify(d.siswa)), formulir: Object.assign({}, d.formulir), templates: JSON.parse(JSON.stringify(d.templates)), layouts: d.layouts, templateFiles: d.files, serverTime: new Date().toISOString() };
     },
     async handle(req) {
       await this.delay();
       const d = this.load();
       const a = req.action;
+      if (a === 'formulir') return { success: true, data: { valid: req.k === d.formulir.kode, aktif: d.formulir.aktif } };
+      if (a === 'daftar') {
+        if (req.k !== d.formulir.kode) return { success: false, code: 'LINK', message: 'Link formulir tidak berlaku. Mintalah link terbaru kepada admin lembaga.' };
+        if (!d.formulir.aktif) return { success: false, code: 'TUTUP', message: 'Formulir sedang ditutup oleh admin lembaga.' };
+        const x = req.data || {};
+        if (!String(x.nama || '').trim() || !x.tempat || !x.tglLahir) return { success: false, message: 'Lengkapi semua isian.' };
+        if (!d.siswa.some((s) => s.id === x.id)) d.siswa.push({ id: x.id, nama: String(x.nama).replace(/\s+/g, ' ').trim(), tempat: x.tempat.trim(), tglLahir: x.tglLahir, createdAt: new Date().toISOString() });
+        this.persist();
+        return { success: true, data: { nama: x.nama } };
+      }
       if (a === 'login') {
         if (req.username !== d.account.username || req.password !== d.account.password) return { success: false, message: 'Username atau kata sandi salah. Silakan periksa kembali huruf besar dan kecil.' };
         const token = (U.uuid() + U.uuid()).replace(/-/g, '');
@@ -238,13 +272,14 @@
                 const i = arr.findIndex((x) => x.id === r.id); const now = new Date().toISOString();
                 const rec = Object.assign({}, r, { createdAt: i >= 0 ? arr[i].createdAt : (r.createdAt || now), updatedAt: now });
                 if (i >= 0) arr[i] = rec; else arr.push(rec);
-                if (op.template) d.templates[op.jenis] = { nomor: op.template.nomor, kepala: op.template.kepala };
+                if (op.template) d.templates[op.jenis] = Object.assign({}, d.templates[op.jenis], op.template);
                 return { opId: op.opId, ok: true, record: rec };
               }
               if (op.type === 'delete') { d.records[op.jenis] = d.records[op.jenis].filter((x) => x.id !== op.id); return { opId: op.opId, ok: true }; }
-              if (op.type === 'saveTemplate') { d.templates[op.jenis] = { nomor: op.nomor, kepala: op.kepala }; return { opId: op.opId, ok: true }; }
+              if (op.type === 'saveTemplate') { const { opId, type, jenis, ...v } = op; d.templates[op.jenis] = Object.assign({}, d.templates[op.jenis], v); return { opId: op.opId, ok: true }; }
+              if (op.type === 'deleteSiswa') { d.siswa = d.siswa.filter((x) => x.id !== op.id); return { opId: op.opId, ok: true }; }
               if (op.type === 'saveLayout') { d.layouts[op.jenis] = op.layout || null; return { opId: op.opId, ok: true }; }
-              if (op.type === 'saveSetting') { d.templates.autoNomor = op.value !== 'tidak'; return { opId: op.opId, ok: true }; }
+              if (op.type === 'saveSetting') { if (op.key === 'formulir_aktif') d.formulir.aktif = op.value !== 'tidak'; else d.templates.autoNomor = op.value !== 'tidak'; return { opId: op.opId, ok: true }; }
               throw new Error('Operasi tidak dikenal');
             } catch (e) { return { opId: op.opId, ok: false, message: e.message }; }
           });
@@ -270,6 +305,8 @@
           return { success: true, message: 'Template berhasil diganti.', data: meta };
         }
         case 'refreshTemplates': return { success: true, data: d.files };
+        case 'getSiswa': return { success: true, data: JSON.parse(JSON.stringify(d.siswa)) };
+        case 'resetKodeFormulir': d.formulir.kode = 'demo' + Math.random().toString(36).slice(2, 10); this.persist(); return { success: true, data: { kode: d.formulir.kode } };
         case 'getTemplate': {
           const v = await U.idb.get('demo_tpl_' + req.jenis);
           if (!v) return { success: true, data: null };

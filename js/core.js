@@ -53,6 +53,14 @@
   U.todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
   // ---------- Teks ----------
+  U.normNama = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  /** Format huruf untuk piagam: 'besar' = HURUF BESAR SEMUA, 'kata' = Huruf Besar Tiap Kata, lainnya = sesuai ketikan. */
+  U.hurufKapital = (text, mode) => {
+    const t = String(text || '');
+    if (mode === 'besar') return t.toLocaleUpperCase('id-ID');
+    if (mode === 'kata') return t.toLocaleLowerCase('id-ID').replace(/(^|[\s\-(/.])(\p{L})/gu, (m, a, b) => a + b.toLocaleUpperCase('id-ID'));
+    return t;
+  };
   U.initials = (name) => {
     const w = String(name || '').trim().split(/\s+/).filter(Boolean);
     if (!w.length) return '?';
@@ -130,7 +138,8 @@
   const kosong = () => ({
     token: null, user: null, mustChange: false,
     records: { ahe: [], ala: [] },
-    templates: { ahe: { nomor: '', kepala: '' }, ala: { nomor: '', kepala: '' }, autoNomor: true },
+    templates: { ahe: { nomor: '', kepala: '', unit: '' }, ala: { nomor: '', kepala: '', desa: '' }, autoNomor: true },
+    siswa: [], formulir: { aktif: true, kode: '' },
     layouts: { ahe: null, ala: null },
     templateFiles: { ahe: null, ala: null },
     lastActive: 0, syncedAt: null
@@ -170,10 +179,18 @@
         s.records[j] = Array.from(map.values());
       });
 
+      // Data siswa dari formulir orang tua
+      const del = new Set(ops.filter((o) => o.type === 'deleteSiswa').map((o) => o.id));
+      if (data.siswa) s.siswa = data.siswa.filter((x) => !del.has(x.id));
+      if (data.formulir) {
+        const pend = ops.find((o) => o.type === 'saveSetting' && o.key === 'formulir_aktif');
+        s.formulir = { kode: data.formulir.kode, aktif: pend ? pend.value !== 'tidak' : data.formulir.aktif };
+      }
+
       const t = data.templates || {};
       const pendTpl = ops.some((o) => o.template || o.type === 'saveTemplate');
       if (!pendTpl) { s.templates.ahe = t.ahe || s.templates.ahe; s.templates.ala = t.ala || s.templates.ala; }
-      if (!ops.some((o) => o.type === 'saveSetting') && typeof t.autoNomor === 'boolean') s.templates.autoNomor = t.autoNomor;
+      if (!ops.some((o) => o.type === 'saveSetting' && o.key === 'nomor_auto_naik') && typeof t.autoNomor === 'boolean') s.templates.autoNomor = t.autoNomor;
       this.saveNow();
       this.emit();
     },
@@ -211,7 +228,19 @@
       if (i < 0) return;
       if (pending) arr[i] = Object.assign({}, arr[i], { createdAt: rec.createdAt });
       else arr[i] = rec;
-    }
+    },
+
+    /* ---------- Data siswa (dari formulir orang tua) ---------- */
+    siswa: () => Store.s.siswa || [],
+    findSiswa: (id) => (Store.s.siswa || []).find((x) => x.id === id) || null,
+    /** Piagam apa saja yang sudah dibuat untuk siswa ini (dicocokkan lewat ID Siswa, atau nama yang sama persis). */
+    piagamSiswa(sw) {
+      const nm = U.normNama(sw.nama);
+      const cari = (j) => Data.list(j).filter((r) => (r.siswaId && r.siswaId === sw.id) || (!r.siswaId && U.normNama(r.nama) === nm));
+      return { ahe: cari('ahe'), ala: cari('ala') };
+    },
+    /** "Sangatta, 12 Mei 2018" */
+    ttlSiswa: (sw) => [sw.tempat, U.fmtTgl(sw.tglLahir)].filter(Boolean).join(', ')
   };
 
   window.Store = Store;

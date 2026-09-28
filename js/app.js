@@ -56,8 +56,9 @@
         });
         document.addEventListener('keydown', onKey);
         $('#overlay-root').appendChild(wrap);
+        if (o.onMount) o.onMount(wrap, close);
         requestAnimationFrame(() => wrap.classList.add('show'));
-        setTimeout(() => { const b = wrap.querySelector('.sheet-actions .btn:last-child'); if (b) b.focus({ preventScroll: true }); }, 60);
+        if (!o.noAutofocus) setTimeout(() => { const b = wrap.querySelector('.sheet-actions .btn:last-child'); if (b) b.focus({ preventScroll: true }); }, 60);
       });
     }
   };
@@ -189,6 +190,8 @@
           back = ui.justSaved === b ? `#/buat/${Hasil.jenis}` : `#/riwayat/${Hasil.jenis}`; break;
         case 'riwayat':
           Riwayat.open(a); title = 'Riwayat Piagam'; break;
+        case 'siswa':
+          Siswa.open(); title = 'Data Siswa'; break;
         case 'pengaturan':
           Api.warmup();
           Pengaturan.render(); title = 'Pengaturan Sistem'; break;
@@ -277,6 +280,9 @@
       const unitTerbaru = Data.sorted('ahe').find((r) => r.unit);
       $('#hero-unit').textContent = (unitTerbaru ? unitTerbaru.unit : (CFG.NAMA_LEMBAGA || 'Anak Hebat Indonesia')).toUpperCase();
       $('#warn-default-pass').hidden = !Store.s.mustChange;
+      const baru = Siswa.jumlahBaru();
+      $('#banner-siswa').hidden = !baru;
+      $('#banner-siswa-text').textContent = `${baru} data siswa baru belum dibuatkan piagam`;
       Chart.render(mA, mL);
       this.recent();
     },
@@ -445,20 +451,26 @@
       $('#btn-live-full').addEventListener('click', () => Viewer.open($('#live-canvas'), 'Pratinjau ' + JENIS_LABEL[this.jenis]));
       $('#live-canvas').parentElement.addEventListener('click', () => Viewer.open($('#live-canvas'), 'Pratinjau ' + JENIS_LABEL[this.jenis]));
       mqWide.addEventListener('change', () => this.preview());
+      $('#btn-pick-siswa').addEventListener('click', () => this.pilihSiswa());
+      $('#btn-unlink').addEventListener('click', () => { this.siswaId = ''; if (!this.editId) this.saveDraft(); this.siswaUI(); toast('Tautan ke data siswa dilepas.', 'info', 1500); });
     },
     defaults(j) {
       const t = Store.s.templates[j] || {};
-      return { nomor: t.nomor || '', kepala: t.kepala || '', tglLulus: U.todayISO() };
+      const v = { nomor: t.nomor || '', kepala: t.kepala || '', tglLulus: U.todayISO() };
+      if (j === 'ahe') v.unit = t.unit || ''; else v.desa = t.desa || '';
+      return v;
     },
     openNew(jenis) {
       this.jenis = jenis; this.editId = null; this.origTgl = ''; this.locked = false;
       const d = this.drafts[jenis];
       if (d && d.formId) {
         this.formId = d.formId;
+        this.siswaId = d.siswaId || '';
         this.setValues(d.values || {});
         $('#draft-note').hidden = !(d.touched && !this.restored[jenis]);
       } else {
         this.formId = U.uuid();
+        this.siswaId = '';
         this.setValues(this.defaults(jenis));
         $('#draft-note').hidden = true;
       }
@@ -470,6 +482,7 @@
       const rec = Data.find(jenis, id);
       if (!rec) { toast('Data piagam tidak ditemukan.', 'error'); return false; }
       this.jenis = jenis; this.editId = id; this.formId = null; this.origTgl = rec.tglLulus || ''; this.locked = false;
+      this.siswaId = rec.siswaId || '';
       this.setValues(rec);
       $('#draft-note').hidden = true;
       this.applyUI(); this.clearErrors(); this.preview();
@@ -490,6 +503,7 @@
       });
       $('#btn-save-label').textContent = edit ? 'Simpan Perubahan' : 'Pratinjau & Simpan';
       $('#btn-save-pdf').hidden = false;
+      this.siswaUI();
       // Saran isian dari riwayat (mempercepat pengetikan)
       const uniq = (arr) => Array.from(new Set(arr.filter(Boolean))).slice(0, 30);
       const fill = (id, vals) => { $(id).innerHTML = uniq(vals).map((v) => `<option value="${esc(v)}">`).join(''); };
@@ -516,10 +530,78 @@
       const fld = e.target.closest && e.target.closest('.field');
       if (fld) fld.classList.remove('invalid');
       if (!this.editId) {
-        this.drafts[this.jenis] = { formId: this.formId, values: this.values(), touched: true };
-        U.ls.set(DKEY, this.drafts);
+        this.saveDraft();
       }
       this.previewRaf();
+    },
+    saveDraft() {
+      this.drafts[this.jenis] = { formId: this.formId, values: this.values(), siswaId: this.siswaId || '', touched: true };
+      U.ls.set(DKEY, this.drafts);
+    },
+    /* --- tautan ke Data Siswa (formulir orang tua) --- */
+    siswaUI() {
+      const sw = this.siswaId ? Data.findSiswa(this.siswaId) : null;
+      const chip = $('#siswa-linked');
+      chip.hidden = !this.siswaId;
+      if (this.siswaId) chip.querySelector('span').textContent = 'Data Siswa: ' + (sw ? sw.nama : 'tertaut');
+      const belum = Data.siswa().filter((x) => !Data.piagamSiswa(x)[this.jenis].length).length;
+      const c = $('#pick-count'); c.hidden = !belum; c.textContent = belum;
+    },
+    /** Isi form dari data siswa. */
+    pakaiSiswa(sw) {
+      const e = this.form.elements;
+      e.nama.value = sw.nama;
+      if (this.jenis === 'ahe') e.ttl.value = Data.ttlSiswa(sw);
+      this.siswaId = sw.id;
+      $$('.field[data-field=nama], .field[data-field=ttl]', this.form).forEach((f) => f.classList.remove('invalid'));
+      if (!this.editId) this.saveDraft();
+      this.siswaUI(); this.previewRaf();
+      const sudah = Data.piagamSiswa(sw)[this.jenis].length;
+      toast(sudah ? `Perhatian: ${sw.nama} sudah pernah dibuatkan Piagam ${JENIS_LABEL[this.jenis]}.` : `Data ${sw.nama} dimasukkan ke formulir.`, sudah ? 'info' : 'success', sudah ? 4000 : 2000);
+    },
+    /** Dari menu Data Siswa: buka form baru yang sudah terisi. */
+    dariSiswa(j, sw) {
+      const v = Object.assign(this.defaults(j), { nama: sw.nama });
+      if (j === 'ahe') v.ttl = Data.ttlSiswa(sw);
+      this.drafts[j] = { formId: U.uuid(), values: v, siswaId: sw.id, touched: false };
+      U.ls.set(DKEY, this.drafts);
+      Router.go('#/buat/' + j);
+    },
+    async pilihSiswa() {
+      const j = this.jenis;
+      const daftar = Data.siswa().slice().sort((a, b) => {
+        const pa = Data.piagamSiswa(a)[j].length ? 1 : 0, pb = Data.piagamSiswa(b)[j].length ? 1 : 0;
+        return pa - pb || String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+      });
+      if (!daftar.length) {
+        const buka = await Sheet.open({ icon: 'users', title: 'Belum ada data siswa', subtitle: 'Bagikan link formulir ke orang tua agar mereka mengisi data anaknya.', actions: [{ label: 'Tutup', value: false }, { label: 'Ke Data Siswa', value: true, cls: 'btn-primary' }] });
+        if (buka) Router.go('#/siswa');
+        return;
+      }
+      const item = (sw) => {
+        const p = Data.piagamSiswa(sw);
+        const tanda = p[j].length ? `<span class="badge badge-${j}">✓ Piagam ${JENIS_LABEL[j]}</span>` : '<span class="badge badge-new">Baru</span>';
+        return `<button type="button" class="pick-item${p[j].length ? ' done' : ''}" data-id="${esc(sw.id)}" data-q="${esc(U.normNama(sw.nama + ' ' + sw.tempat))}">
+          <span class="initials ${j}">${esc(U.initials(sw.nama))}</span>
+          <span class="pick-main"><b>${esc(sw.nama)}</b><small>${esc(Data.ttlSiswa(sw))}</small></span>${tanda}</button>`;
+      };
+      const pilih = await Sheet.open({
+        icon: 'users', title: 'Pilih Data Siswa', subtitle: `Nama yang belum punya Piagam ${JENIS_LABEL[j]} ditaruh paling atas.`,
+        body: `<label class="search sm"><svg class="ic"><use href="#i-search"/></svg><input type="search" placeholder="Cari nama…" id="pick-q" autocomplete="off"></label>
+               <div class="pick-list">${daftar.map(item).join('')}</div>`,
+        actions: [{ label: 'Batal', value: null }], noAutofocus: true,
+        onMount: (wrap, close) => {
+          const q = wrap.querySelector('#pick-q');
+          q.addEventListener('input', () => {
+            const t = U.normNama(q.value);
+            wrap.querySelectorAll('.pick-item').forEach((b) => { b.hidden = t && !b.dataset.q.includes(t); });
+          });
+          wrap.querySelector('.pick-list').addEventListener('click', (e) => { const b = e.target.closest('.pick-item'); if (b) close(b.dataset.id); });
+          if (window.matchMedia('(pointer: fine)').matches) setTimeout(() => q.focus(), 80);
+        }
+      });
+      const sw = pilih && Data.findSiswa(pilih);
+      if (sw) this.pakaiSiswa(sw);
     },
     clearDraft(j) { delete this.drafts[j]; U.ls.set(DKEY, this.drafts); },
     clearAllDrafts() { this.drafts = {}; this.restored = {}; U.ls.del(DKEY); },
@@ -549,10 +631,11 @@
         const isNew = !this.editId;
         const id = isNew ? this.formId : this.editId;
         const old = Data.find(j, id);
-        const rec = Object.assign({ id }, v, { createdAt: old ? old.createdAt : now, updatedAt: now });
+        const rec = Object.assign({ id }, v, { siswaId: this.siswaId || '', createdAt: old ? old.createdAt : now, updatedAt: now });
         let template = null;
         if (isNew) {
           template = { nomor: Store.s.templates.autoNomor ? U.nomorBerikutnya(v.nomor) : v.nomor, kepala: v.kepala };
+          if (j === 'ahe') template.unit = v.unit; else template.desa = v.desa;   // Unit / Desa ikut jadi template
           Store.s.templates[j] = Object.assign({}, template);
         }
         Data.upsert(j, rec);
@@ -795,6 +878,140 @@
   };
 
   /* =====================================================================
+     DATA SISWA — diisi orang tua lewat link formulir (daftar.html)
+     ===================================================================== */
+  const Siswa = {
+    tab: 'baru', q: '', lastFetch: 0,
+    init() {
+      const inp = $('#search-siswa');
+      inp.addEventListener('input', U.debounce(() => { this.q = inp.value; this.render(); }, 120));
+      $$('#seg-siswa .seg-btn').forEach((b) => b.addEventListener('click', () => { this.tab = b.dataset.tab; this.render(); }));
+      $('#siswa-list').addEventListener('click', (e) => this.onAction(e));
+      $('#btn-copy-link').addEventListener('click', () => this.salin());
+      $('#sw-formulir').addEventListener('change', (e) => {
+        Store.s.formulir.aktif = e.target.checked; Store.save();
+        Outbox.push({ type: 'saveSetting', key: 'formulir_aktif', value: e.target.checked ? 'ya' : 'tidak' });
+        this.renderShare();
+        toast(e.target.checked ? 'Formulir dibuka — orang tua bisa mengisi.' : 'Formulir ditutup — link tidak menerima isian.', 'info');
+      });
+      $('#btn-reset-link').addEventListener('click', () => this.linkBaru());
+    },
+    link() {
+      const base = location.href.split('#')[0].split('?')[0].replace(/index\.html$/, '');
+      return base.replace(/\/?$/, '/') + 'daftar.html?k=' + encodeURIComponent((Store.s.formulir || {}).kode || '');
+    },
+    sudah(sw) { const p = Data.piagamSiswa(sw); return p.ahe.length + p.ala.length > 0; },
+    jumlahBaru() { return Data.siswa().filter((x) => !this.sudah(x)).length; },
+    badges() {
+      const n = this.jumlahBaru();
+      $$('[data-siswa-baru]').forEach((el) => { el.hidden = !n; if (el.classList.contains('nav-count')) el.textContent = n; });
+    },
+    open() { this.render(); this.fetch(); },
+    /** Ambil kiriman terbaru dari orang tua (tanpa mengganggu tampilan). */
+    async fetch(force) {
+      if (!force && Date.now() - this.lastFetch < 15000) return;
+      this.lastFetch = Date.now();
+      const res = await Api.call('getSiswa');
+      if (!res.success || !Store.s.token) return;
+      const del = new Set(Outbox.ops.filter((o) => o.type === 'deleteSiswa').map((o) => o.id));
+      const sebelum = Data.siswa().length;
+      Store.s.siswa = (res.data || []).filter((x) => !del.has(x.id));
+      Store.save(); Store.emit();
+      const tambah = Store.s.siswa.length - sebelum;
+      if (tambah > 0 && ui.page === 'siswa') toast(`${tambah} data siswa baru masuk.`, 'info');
+    },
+    renderShare() {
+      const f = Store.s.formulir || {};
+      const link = this.link();
+      $('#link-formulir').value = f.kode ? link : 'Jalankan setupAplikasi() di Apps Script untuk membuat link';
+      $('#sw-formulir').checked = f.aktif !== false;
+      $('#formulir-status').textContent = f.aktif !== false ? 'Dibuka' : 'Ditutup';
+      $('#formulir-status').className = f.aktif !== false ? 'on' : 'off';
+      const pesan = `Yth. Bapak/Ibu orang tua/wali siswa ${CFG.NAMA_LEMBAGA || 'Anak Hebat Indonesia'},\n\nMohon mengisi data anak (nama lengkap, tempat & tanggal lahir) untuk pembuatan piagam kelulusan melalui link berikut:\n${link}\n\nPastikan penulisan nama sesuai akta kelahiran. Terima kasih 🙏`;
+      $('#btn-wa').href = 'https://wa.me/?text=' + encodeURIComponent(pesan);
+      $('#btn-open-form').href = link;
+    },
+    async salin() {
+      const link = this.link();
+      try { await navigator.clipboard.writeText(link); }
+      catch (e) { const i = $('#link-formulir'); i.select(); document.execCommand && document.execCommand('copy'); }
+      toast('Link formulir disalin. Tempel di WhatsApp/grup orang tua.');
+    },
+    async linkBaru() {
+      const ok = await Sheet.open({ icon: 'refresh', title: 'Buat link baru?', subtitle: 'Link lama langsung tidak berlaku. Data yang sudah masuk tetap aman.', actions: [{ label: 'Batal', value: false }, { label: 'Buat Link Baru', value: true, cls: 'btn-primary' }] });
+      if (!ok) return;
+      const btn = $('#btn-reset-link');
+      btn.disabled = true;
+      const res = await Api.call('resetKodeFormulir');
+      btn.disabled = false;
+      if (!res.success) { toast(res.message || 'Gagal membuat link baru.', 'error'); return; }
+      Store.s.formulir.kode = res.data.kode; Store.save();
+      this.renderShare();
+      toast('Link baru siap dibagikan.');
+    },
+    render() {
+      this.renderShare();
+      const semua = Data.siswa().slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      const belum = semua.filter((x) => !this.sudah(x));
+      $('#count-siswa-baru').textContent = belum.length;
+      $('#count-siswa-sudah').textContent = semua.length - belum.length;
+      $('#count-siswa-semua').textContent = semua.length;
+      $$('#seg-siswa .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === this.tab));
+      let arr = this.tab === 'baru' ? belum : this.tab === 'sudah' ? semua.filter((x) => this.sudah(x)) : semua;
+      const q = U.normNama(this.q);
+      if (q) arr = arr.filter((x) => U.normNama(x.nama + ' ' + x.tempat).includes(q));
+      const note = $('#siswa-note');
+      note.hidden = !q; note.textContent = `${arr.length} hasil untuk "${this.q.trim()}"`;
+      const list = $('#siswa-list');
+      if (!arr.length) {
+        list.innerHTML = q ? `<div class="card empty"><svg class="ic"><use href="#i-search"/></svg><b>Tidak ditemukan</b>Coba kata kunci lain.</div>`
+          : this.tab === 'baru' && semua.length
+            ? `<div class="card empty"><svg class="ic"><use href="#i-check"/></svg><b>Semua sudah dibuatkan piagam</b>Kiriman baru dari orang tua akan muncul di sini.</div>`
+            : `<div class="card empty"><svg class="ic"><use href="#i-users"/></svg><b>Belum ada data dari orang tua</b>Salin link di atas atau tekan <b>Bagikan ke WhatsApp</b>, lalu kirim ke grup orang tua.</div>`;
+        return;
+      }
+      list.innerHTML = arr.map((sw) => this.item(sw)).join('');
+    },
+    item(sw) {
+      const p = Data.piagamSiswa(sw);
+      const tanda = (p.ahe.length ? '<span class="badge badge-ahe">✓ Piagam Ahe</span>' : '') + (p.ala.length ? '<span class="badge badge-ala">✓ Piagam Ala</span>' : '');
+      const btn = (j) => p[j].length
+        ? `<button type="button" class="btn btn-ghost btn-sm" data-act="lihat" data-j="${j}"><svg class="ic"><use href="#i-eye"/></svg>Lihat ${JENIS_LABEL[j]}</button>`
+        : `<button type="button" class="btn ${j === 'ala' ? 'btn-orange' : 'btn-primary'} btn-sm" data-act="buat" data-j="${j}"><svg class="ic"><use href="#i-plus"/></svg>Piagam ${JENIS_LABEL[j]}</button>`;
+      return `<article class="card h-card-item siswa-item${this.sudah(sw) ? ' is-done' : ''}" data-id="${esc(sw.id)}">
+        <div class="h-top">
+          <div class="h-name"><b>${esc(sw.nama)}</b>${tanda || '<span class="badge badge-new">Baru</span>'}</div>
+          <span class="h-date" title="Dikirim orang tua">${esc(U.fmtTglPendek(sw.createdAt))}</span>
+        </div>
+        <div class="h-meta"><svg class="ic"><use href="#i-pin"/></svg><span>${esc(Data.ttlSiswa(sw) || '—')}</span></div>
+        <div class="siswa-actions">${btn('ahe')}${btn('ala')}
+          <button type="button" class="act del" data-act="hapus" aria-label="Hapus data ${esc(sw.nama)}"><svg class="ic"><use href="#i-trash"/></svg></button></div>
+      </article>`;
+    },
+    async onAction(e) {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const sw = Data.findSiswa(b.closest('[data-id]').dataset.id);
+      if (!sw) return;
+      const j = b.dataset.j;
+      if (b.dataset.act === 'buat') Buat.dariSiswa(j, sw);
+      else if (b.dataset.act === 'lihat') {
+        const r = Data.piagamSiswa(sw)[j].sort((x, y) => String(y.createdAt).localeCompare(String(x.createdAt)))[0];
+        ui.justSaved = null; Router.go(`#/hasil/${j}/${encodeURIComponent(r.id)}`);
+      } else if (b.dataset.act === 'hapus') {
+        const ok = await Sheet.open({ icon: 'alert', tone: 'danger', title: 'Hapus data siswa ini?', subtitle: 'Piagam yang sudah dibuat tidak ikut terhapus.',
+          body: `<div class="sheet-note">Data <b class="t-danger">${esc(sw.nama)}</b> (${esc(Data.ttlSiswa(sw))}) akan dihapus dari sheet Data_Siswa.</div>`,
+          actions: [{ label: 'Batal', value: false }, { label: 'Ya, Hapus', value: true, cls: 'btn-danger', icon: 'trash' }] });
+        if (!ok) return;
+        Store.s.siswa = Data.siswa().filter((x) => x.id !== sw.id);
+        Store.save(); Store.emit();
+        Outbox.push({ type: 'deleteSiswa', id: sw.id });
+        toast('Data ' + sw.nama + ' dihapus.');
+      }
+    }
+  };
+
+  /* =====================================================================
      PENGATURAN
      ===================================================================== */
   const Pengaturan = {
@@ -805,7 +1022,7 @@
         const j = box.dataset.tpl;
         box.querySelector('[data-tpl-save]').addEventListener('click', () => this.saveTpl(j));
         box.querySelector('[data-tpl-clear]').addEventListener('click', () => {
-          box.querySelector('[name=nomor]').value = ''; box.querySelector('[name=kepala]').value = '';
+          box.querySelectorAll('input').forEach((i) => { i.value = ''; });
           this.saveTpl(j, true);
         });
       });
@@ -832,6 +1049,7 @@
         const t = Store.s.templates[box.dataset.tpl] || {};
         box.querySelector('[name=nomor]').value = t.nomor || '';
         box.querySelector('[name=kepala]').value = t.kepala || '';
+        const ex = box.querySelector('[name=unit], [name=desa]'); if (ex) ex.value = t[ex.name] || '';
       });
       $('#sw-auto-nomor').checked = Store.s.templates.autoNomor !== false;
       this.files();
@@ -895,10 +1113,13 @@
       const box = $(`.tpl-box[data-tpl="${j}"]`);
       const nomor = box.querySelector('[name=nomor]').value.trim();
       const kepala = box.querySelector('[name=kepala]').value.trim();
-      Store.s.templates[j] = { nomor, kepala };
+      const ex = box.querySelector('[name=unit], [name=desa]');
+      const extra = ex ? { [ex.name]: ex.value.trim() } : {};
+      Store.s.templates[j] = Object.assign({ nomor, kepala }, extra);
       Store.save();
       if (!(Buat.drafts[j] && Buat.drafts[j].touched)) Buat.clearDraft(j);
-      Outbox.push({ type: 'saveTemplate', jenis: j, nomor, kepala });
+      Outbox.push(Object.assign({ type: 'saveTemplate', jenis: j, nomor, kepala }, extra));
+      if (Kalibrasi.work && Kalibrasi.jenis === j) { Kalibrasi.buildSampleOptions(); Kalibrasi.buildList(); Kalibrasi.draw(); }
       toast(kosong ? `Template ${JENIS_LABEL[j]} dikosongkan.` : `Template ${JENIS_LABEL[j]} disimpan.`);
     },
     /**
@@ -998,7 +1219,8 @@
     init() {
       $$('#seg-kal .seg-btn').forEach((b) => b.addEventListener('click', () => { if (b.dataset.jenis === this.jenis) return; this.flush(); this.jenis = b.dataset.jenis; this.active = 'nama'; this.render(); }));
       $('#kal-markers').addEventListener('change', () => this.draw());
-      $('#kal-long').addEventListener('change', () => { this.buildList(); this.draw(); });
+      $('#kal-sample').addEventListener('change', () => { this.sampleKey = $('#kal-sample').value; this.buildList(); this.draw(); });
+      $$('#kal-kapital .seg-btn').forEach((b) => b.addEventListener('click', () => { this.change((f) => { f.kapital = b.dataset.kapital; }); this.buildList(); }));
       $$('#kal-stepsize .seg-btn').forEach((b) => b.addEventListener('click', () => {
         this.step = +b.dataset.step;
         $$('#kal-stepsize .seg-btn').forEach((x) => x.classList.toggle('active', x === b));
@@ -1049,14 +1271,35 @@
       });
       this.drawRaf = U.raf(() => this.draw());
     },
-    sample() { return ($('#kal-long').checked ? this.LONG : this.SAMPLE)[this.jenis]; },
+    /** Data yang ditampilkan di pratinjau: piagam tersimpan, isi template, atau contoh teks panjang. */
+    sample() {
+      const j = this.jenis, key = this.sampleKey || 'last';
+      if (key === 'long') return this.LONG[j];
+      if (key.startsWith('rec:')) { const r = Data.find(j, key.slice(4)); if (r) return r; }
+      if (key === 'last') { const r = Data.sorted(j)[0]; if (r) return r; }
+      // isi template dari Pengaturan (+ contoh untuk kolom yang tidak punya template)
+      const t = Store.s.templates[j] || {}, c = this.SAMPLE[j];
+      return Object.assign({}, c, { nama: 'Nama Lengkap Siswa', nomor: t.nomor || c.nomor, kepala: t.kepala || c.kepala, tglLulus: U.todayISO() },
+        j === 'ahe' ? { unit: t.unit || c.unit } : { desa: t.desa || c.desa });
+    },
+    buildSampleOptions() {
+      const j = this.jenis, recs = Data.sorted(j).slice(0, 12), sel = $('#kal-sample');
+      const opts = [];
+      if (recs.length) opts.push(['last', `Piagam terakhir: ${recs[0].nama}`]);
+      opts.push(['tpl', 'Isi template (Pengaturan)']);
+      recs.slice(1).forEach((r) => opts.push(['rec:' + r.id, r.nama]));
+      opts.push(['long', 'Uji teks panjang']);
+      if (!this.sampleKey || !opts.some((o) => o[0] === this.sampleKey)) this.sampleKey = recs.length ? 'last' : 'tpl';
+      sel.innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}"${v === this.sampleKey ? ' selected' : ''}>${esc(l)}</option>`).join('');
+    },
     layout() { return Cert.layout(this.jenis, this.work); },
     f() { return this.work.fields[this.active]; },
     render() {
       $$('#seg-kal .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.jenis === this.jenis));
       const L = Cert.layout(this.jenis);
       this.work = { fields: {} };
-      Object.keys(L.fields).forEach((k) => { const f = L.fields[k]; this.work.fields[k] = { x: f.x, y: f.y, size: f.size, maxW: f.maxW, color: f.color, align: f.align }; });
+      Object.keys(L.fields).forEach((k) => { const f = L.fields[k]; this.work.fields[k] = { x: f.x, y: f.y, size: f.size, maxW: f.maxW, color: f.color, align: f.align, kapital: f.kapital || 'asli' }; });
+      this.buildSampleOptions();
       if (!this.work.fields[this.active]) this.active = 'nama';
       this.undo = []; $('#kal-undo').disabled = true;
       this.status('saved');
@@ -1065,7 +1308,7 @@
     buildList() {
       const L = Cert.DEFAULT[this.jenis].fields, smp = this.sample();
       $('#kal-list').innerHTML = Object.keys(this.work.fields).map((k) => {
-        const val = Cert.valueOf(this.jenis, k, smp);
+        const val = U.hurufKapital(Cert.valueOf(this.jenis, k, smp), this.work.fields[k].kapital);
         return `<button type="button" class="kal-item" role="option" data-k="${k}" aria-selected="${k === this.active}">
           <i class="kal-dot" style="background:${this.work.fields[k].color}"></i>
           <span><b>${esc(L[k].label)}</b><small>${esc(val || '—')}</small></span></button>`;
@@ -1082,6 +1325,7 @@
       $('#kal-xy').textContent = `X ${Math.round(f.x)} · Y ${Math.round(f.y)}`;
       $$('.stepper').forEach((st) => { const inp = st.querySelector('input'); if (document.activeElement !== inp) inp.value = Math.round(f[st.dataset.prop]); });
       $$('#kal-align .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.align === f.align));
+      $$('#kal-kapital .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.kapital === (f.kapital || 'asli')));
       $$('#kal-colors [data-color]').forEach((b) => b.classList.toggle('active', b.dataset.color.toLowerCase() === String(f.color).toLowerCase()));
       $('#kal-color-custom').value = /^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#2b1b3d';
       const dot = $(`#kal-list [data-k="${this.active}"] .kal-dot`); if (dot) dot.style.background = f.color;
@@ -1334,10 +1578,13 @@
     onData: null
   };
   App.onData = U.raf(() => {
+    Siswa.badges();
+    if (ui.page === 'siswa') Siswa.render();
     if (ui.page === 'dashboard') Dashboard.render();
     else if (ui.page === 'riwayat') Riwayat.render();
   });
   window.App = App;
+  App.Siswa = Siswa;
 
   /* =====================================================================
      INISIALISASI
@@ -1346,7 +1593,7 @@
     Store.load();
     Outbox.init();
     Api.warmup();
-    Auth.init(); Router.init(); Buat.init(); Hasil.init(); Riwayat.init(); Pengaturan.init(); Viewer.init(); Chart.bind();
+    Auth.init(); Router.init(); Buat.init(); Hasil.init(); Riwayat.init(); Siswa.init(); Pengaturan.init(); Viewer.init(); Chart.bind();
     Store.on(() => App.onData());
     Outbox.on(() => updateSyncUI());
     window.addEventListener('online', updateSyncUI);

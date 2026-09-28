@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FFF8E7">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Formulir Data Siswa — Anak Hebat Indonesia</title>
+  <meta name="description" content="Formulir data anak untuk pembuatan piagam kelulusan Lembaga Pendidikan Anak Hebat Indonesia.">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,700;6..12,800;6..12,900&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-daftar">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  </defs>
+</svg>
+
+<main class="view-login daftar-view">
+  <div class="login-deco" aria-hidden="true">
+    <span class="blob blob-y"></span><span class="blob blob-p"></span>
+    <svg class="deco-star s1"><use href="#i-star"/></svg>
+    <svg class="deco-star s2"><use href="#i-star"/></svg>
+  </div>
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="app-logo"><img src="assets/logo-ahe.png" alt="Logo Ahe" width="96" height="63"></div>
+      <h1 class="login-title">Formulir Data Siswa</h1>
+      <p class="login-sub">Untuk pembuatan piagam kelulusan</p>
+      <span class="pill pill-orange" id="nama-lembaga">Anak Hebat Indonesia</span>
+    </div>
+
+    <!-- memuat -->
+    <div class="card login-card daftar-state" id="v-loading">
+      <div class="daftar-loading"><span class="spin"></span>Memeriksa link formulir…</div>
+    </div>
+
+    <!-- formulir -->
+    <form class="card login-card" id="v-form" novalidate autocomplete="off" hidden>
+      <h2 class="h-card">Data Anak</h2>
+      <p class="muted">Isi sesuai <b>akta kelahiran</b> anak. Nama ini akan tercetak di piagam.</p>
+
+      <label class="field">
+        <span class="label">Nama Lengkap Anak <b class="req">*</b></span>
+        <span class="input-wrap has-icon">
+          <svg class="ic in-icon"><use href="#i-user"/></svg>
+          <input class="input input-strong" name="nama" maxlength="120" autocapitalize="words" autocomplete="off" enterkeyhint="next" placeholder="contoh: Ahmad Fadhil Prasetyo" required>
+        </span>
+        <small class="field-error">Nama lengkap anak wajib diisi.</small>
+      </label>
+
+      <label class="field">
+        <span class="label">Tempat Lahir <b class="req">*</b></span>
+        <span class="input-wrap has-icon">
+          <svg class="ic in-icon"><use href="#i-pin"/></svg>
+          <input class="input" name="tempat" maxlength="80" autocapitalize="words" enterkeyhint="next" placeholder="contoh: Sangatta" required>
+        </span>
+        <small class="field-error">Tempat lahir wajib diisi.</small>
+      </label>
+
+      <label class="field">
+        <span class="label">Tanggal Lahir <b class="req">*</b></span>
+        <span class="date3" role="group" aria-label="Tanggal lahir: tanggal, bulan, tahun">
+          <select class="input sel" name="tglD" aria-label="Tanggal" required><option value="">Tgl</option></select>
+          <select class="input sel" name="tglM" aria-label="Bulan" required><option value="">Bulan</option></select>
+          <select class="input sel" name="tglY" aria-label="Tahun" required><option value="">Tahun</option></select>
+        </span>
+        <small class="hint" id="tgl-preview"></small>
+        <small class="field-error" id="tgl-error">Pilih tanggal, bulan, dan tahun lahir anak.</small>
+      </label>
+
+      <!-- jebakan robot spam (tidak terlihat oleh manusia) -->
+      <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit" id="btn-kirim"><span class="btn-label">Kirim Data</span><svg class="ic"><use href="#i-send"/></svg></button>
+      <div class="alert alert-error" id="form-error" role="alert" hidden><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="login-foot"><svg class="ic"><use href="#i-shield"/></svg> Data hanya dipakai untuk pembuatan piagam</div>
+    </form>
+
+    <!-- berhasil -->
+    <div class="card login-card daftar-state" id="v-ok" hidden>
+      <div class="ok-big"><svg class="ic"><use href="#i-check"/></svg></div>
+      <h2 class="h-card center">Terima kasih!</h2>
+      <p class="muted center">Data berikut sudah kami terima:</p>
+      <dl class="dl ok-dl" id="ok-data"></dl>
+      <button class="btn btn-ghost btn-lg btn-block" type="button" id="btn-lagi"><svg class="ic"><use href="#i-plus"/></svg>Isi untuk anak lain</button>
+      <p class="muted center small-note">Ada salah ketik? Kirim ulang data yang benar dan beri tahu admin lembaga.</p>
+    </div>
+
+    <!-- link tidak berlaku / ditutup -->
+    <div class="card login-card daftar-state" id="v-err" hidden>
+      <div class="ok-big warn"><svg class="ic"><use href="#i-alert"/></svg></div>
+      <h2 class="h-card center" id="err-title">Link tidak berlaku</h2>
+      <p class="muted center" id="err-text">Mintalah link formulir terbaru kepada admin lembaga.</p>
+      <button class="btn btn-ghost btn-block" type="button" id="btn-coba" hidden>Coba lagi</button>
+    </div>
+  </div>
+</main>
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const k = new URLSearchParams(location.search).get('k') || '';
+  const form = $('#v-form');
+  let idKirim = U.uuid();              // tetap sama saat kirim ulang → tidak pernah dobel
+  const cfg = window.APP_CONFIG || {};
+  if (cfg.NAMA_LEMBAGA) $('#nama-lembaga').textContent = cfg.NAMA_LEMBAGA;
+
+  const tampil = (id) => ['#v-loading', '#v-form', '#v-ok', '#v-err'].forEach((v) => { $(v).hidden = v !== id; });
+  const gagal = (judul, teks, bisaUlang) => {
+    $('#err-title').textContent = judul; $('#err-text').textContent = teks;
+    $('#btn-coba').hidden = !bisaUlang; tampil('#v-err');
+  };
+
+  async function periksa() {
+    tampil('#v-loading');
+    if (!k) return gagal('Link tidak lengkap', 'Buka link formulir persis seperti yang dibagikan admin lembaga.');
+    const res = await Api.get({ action: 'formulir', k });
+    if (!res.success) return gagal('Tidak bisa terhubung', res.message || 'Periksa koneksi internet Anda.', true);
+    if (!res.data.valid) return gagal('Link tidak berlaku', 'Link ini sudah diganti. Mintalah link formulir terbaru kepada admin lembaga.');
+    if (!res.data.aktif) return gagal('Formulir sedang ditutup', 'Admin lembaga sedang tidak menerima isian. Silakan coba lagi nanti.');
+    tampil('#v-form');
+    setTimeout(() => form.nama.focus(), 50);
+  }
+
+  // ---- Tanggal lahir: dd / mmmm / yyyy (3 pilihan, tidak bergantung format HP) ----
+  const selD = form.tglD, selM = form.tglM, selY = form.tglY;
+  for (let d = 1; d <= 31; d++) selD.add(new Option(String(d).padStart(2, '0'), d));
+  U.BULAN.forEach((b, i) => selM.add(new Option(b, i + 1)));
+  const thn = new Date().getFullYear();
+  for (let y = thn; y >= thn - 25; y--) selY.add(new Option(y, y));
+  const hariDalam = (m, y) => new Date(y || 2000, m, 0).getDate();      // 2000 = kabisat → 29 Feb tetap bisa dipilih
+  const tglISO = () => {
+    const d = +selD.value, m = +selM.value, y = +selY.value;
+    if (!d || !m || !y || d > hariDalam(m, y)) return '';
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+  const perbaruiTgl = () => {
+    const m = +selM.value, y = +selY.value;
+    const maks = m ? hariDalam(m, y) : 31;
+    Array.from(selD.options).forEach((o) => { if (o.value) o.disabled = +o.value > maks; });
+    if (+selD.value > maks) selD.value = '';
+    const iso = tglISO();
+    $('#tgl-preview').textContent = iso ? 'Tertulis di piagam: ' + U.fmtTgl(iso) : '';
+    [selD, selM, selY].forEach((x) => x.classList.toggle('has-value', !!x.value));
+  };
+  [selD, selM, selY].forEach((x) => x.addEventListener('change', perbaruiTgl));
+  form.addEventListener('input', (e) => { const f = e.target.closest('.field'); if (f) f.classList.remove('invalid'); $('#form-error').hidden = true; });
+  form.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    const urut = [form.nama, form.tempat, selD];
+    const nx = urut[urut.indexOf(e.target) + 1];
+    if (nx) nx.focus(); else form.requestSubmit();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const bersih = (v) => String(v || '').replace(/\s+/g, ' ').trim();
+    const data = { id: idKirim, nama: bersih(form.nama.value), tempat: bersih(form.tempat.value), tglLahir: tglISO(), website: form.website.value };
+    const salah = [];
+    if (data.nama.length < 2) salah.push(form.nama);
+    if (!data.tempat) salah.push(form.tempat);
+    if (!U.isISODate(data.tglLahir)) {
+      $('#tgl-error').textContent = (selD.value && selM.value && selY.value) ? 'Tanggal tersebut tidak ada. Periksa kembali.' : 'Pilih tanggal, bulan, dan tahun lahir anak.';
+      salah.push(!selD.value ? selD : !selM.value ? selM : selY);
+    }
+    if (salah.length) { salah.forEach((i) => i.closest('.field').classList.add('invalid')); salah[0].focus(); return; }
+    const btn = $('#btn-kirim');
+    btn.classList.add('is-busy'); btn.disabled = true;
+    const res = await Api.call('daftar', { k, data });
+    btn.classList.remove('is-busy'); btn.disabled = false;
+    if (!res.success) {
+      if (res.code === 'LINK') return gagal('Link tidak berlaku', res.message);
+      if (res.code === 'TUTUP') return gagal('Formulir sedang ditutup', res.message);
+      const err = $('#form-error'); err.querySelector('span').textContent = res.message || 'Gagal mengirim. Coba lagi.'; err.hidden = false;
+      return;
+    }
+    const baris = (a, b) => `<dt>${a}</dt><dd>${U.esc(b)}</dd>`;
+    $('#ok-data').innerHTML = baris('Nama', data.nama) + baris('Tempat lahir', data.tempat) + baris('Tanggal lahir', U.fmtTgl(data.tglLahir));
+    tampil('#v-ok');
+  });
+
+  $('#btn-lagi').addEventListener('click', () => { form.reset(); perbaruiTgl(); idKirim = U.uuid(); tampil('#v-form'); form.nama.focus(); });
+  $('#btn-coba').addEventListener('click', periksa);
+  periksa();
+})();
+</script>
+</body>
+</html>

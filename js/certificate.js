@@ -47,6 +47,7 @@
         ['x', 'y', 'size', 'maxW'].forEach((p) => { if (typeof o[p] === 'number' && isFinite(o[p])) f[p] = o[p]; });
         if (o.color) f.color = o.color;
         if (o.align) f.align = o.align;
+        if (o.kapital) f.kapital = o.kapital;
         fields[k] = f;
       });
       return { refW: base.refW, refH: base.refH, fields };
@@ -137,7 +138,7 @@
     const sx = W / L.refW, sy = H / L.refH;
     Object.keys(L.fields).forEach((k) => {
       const f = L.fields[k];
-      const text = Cert.valueOf(jenis, k, rec);
+      const text = U.hurufKapital(Cert.valueOf(jenis, k, rec), f.kapital);   // format huruf dari Kalibrasi
       if (text) drawFitted(ctx, text, f, sx, sy);            // field kosong = tidak ada teks (garis template tetap bersih)
       if (opts.markers) drawMarker(ctx, k, f, sx, sy, opts.active === k);
     });

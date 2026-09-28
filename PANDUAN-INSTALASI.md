@@ -104,14 +104,26 @@ Jika tampilan masih versi lama, tekan **Ctrl+Shift+R**.
 ## Tahap 4 — Setelah online
 
 1. Login `admin` / `ahe12345` → buka **Pengaturan → Akun Admin** → ganti username & kata sandi.
-2. **Pengaturan → Template Isian Otomatis**: isi Nomor awal & Nama Kepala Unit untuk Ahe dan Ala.
+2. **Pengaturan → Template Isian Otomatis**: isi Nomor awal, Nama Kepala Unit, **Nama Unit Pembelajaran** (Ahe) dan **Desa/Kelurahan** (Ala). Nilai yang terakhir dipakai saat menyimpan piagam otomatis menjadi template berikutnya.
 3. **Pengaturan → Kalibrasi Posisi Teks**: cocokkan posisi tulisan dengan garis template resmi.
    - **Seret tulisan** langsung di gambar pratinjau, atau pilih kolom lalu **ketuk** posisi barunya.
    - Rapikan dengan tombol panah (tahan untuk geser terus), ukuran huruf **− / +**, lebar maksimum, perataan, dan warna.
+   - **Format huruf** per kolom: *Asli*, *HURUF BESAR*, atau *Huruf Besar Tiap Kata* (misalnya untuk Nama Lengkap). Data yang diketik tidak berubah; hanya tampilan di piagam.
+   - **Data pratinjau** menampilkan piagam terakhir yang Anda simpan, isi template, piagam lain, atau contoh teks panjang.
    - Perubahan **tersimpan otomatis**. Salah geser? Tekan **Urungkan**. Centang **Uji teks panjang** untuk memastikan nama panjang tetap muat.
 4. Buat 1 piagam uji → **Unduh PDF** → cetak → periksa posisinya.
 
 ---
+
+## Formulir Data Siswa untuk orang tua
+
+1. Buka menu **Data Siswa**, lalu tekan **Bagikan ke WhatsApp** atau **Salin** link, dan kirim ke grup orang tua.
+2. Orang tua membuka link (tanpa login) dan mengisi **Nama Lengkap Anak, Tempat Lahir, Tanggal Lahir**. Data masuk ke sheet **Data_Siswa**.
+3. Di menu **Data Siswa**, tiap nama bertanda **Baru** (belum dibuatkan piagam) atau **✓ Piagam Ahe / ✓ Piagam Ala**. Tekan **+ Piagam Ahe / + Piagam Ala** dan formulir piagam langsung terisi.
+   Dari halaman Buat Piagam juga bisa: tekan **Ambil dari Data Siswa**.
+4. **Buka/tutup** formulir dengan tombol geser. **Buat link baru** membuat link lama tidak berlaku (misalnya bila link tersebar ke luar grup).
+
+Link berisi kode rahasia (`daftar.html?k=...`), jadi formulir tidak bisa diisi tanpa link dari admin.
 
 ## Mengubah backend di kemudian hari (penting)
 
