@@ -520,7 +520,11 @@ a.stat:hover { box-shadow: var(--sh2); transform: translateY(-1px); }
 .file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .file-meta b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-meta small { font-size: 12.5px; }
-.note { display: block; font-size: 12.5px; margin-top: 4px; }
+.note { display: block; font-size: 12.5px; margin-top: 10px; line-height: 1.55; }
+#btn-tpl-refresh { margin-top: 2px; }
+.file-row { transition: border-color .15s, background .15s; }
+.file-row.drag { border-color: var(--purple); background: var(--purple-50); border-style: dashed; }
+.file-row.busy [data-fdesc] { color: var(--purple); font-weight: 600; }
 .kal-canvas { margin-top: 4px; cursor: default; }
 .kal-fields { display: grid; gap: 10px; margin-top: 8px; }
 .kal-field { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #FFF8EC; }
@@ -645,6 +649,82 @@ a.stat:hover { box-shadow: var(--sh2); transform: translateY(-1px); }
   .dash-side { position: sticky; top: 96px; }
   .kal-fields { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* ---------- Kalibrasi (v2): pratinjau lengket + panel kontrol ---------- */
+.card-kalibrasi .set-head .pill { font-size: 12.5px; }
+.card-kalibrasi .set-head .pill .ic { width: 15px; height: 15px; }
+.kal-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 14px; }
+.kal-top .seg { margin: 0; min-width: 260px; flex: 1; max-width: 420px; }
+.kal-toggles { display: flex; gap: 4px 18px; flex-wrap: wrap; }
+.kal-toggles .check-row { margin: 0; min-height: 36px; font-weight: 600; }
+.kal-layout { display: grid; gap: 16px; align-items: start; }
+.kal-stage { position: sticky; top: 64px; z-index: 6; background: var(--surface); padding: 6px 0 10px; margin: -6px 0 0; }
+.kal-canvas { cursor: crosshair; touch-action: none; margin: 0; box-shadow: 0 6px 18px rgba(78, 31, 107, .14); }
+.kal-canvas canvas { outline: none; }
+.kal-canvas canvas:focus-visible { outline: 3px solid rgba(107, 47, 143, .45); outline-offset: -3px; }
+.kal-canvas canvas.dragging { cursor: grabbing !important; }
+.kal-hint { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.kal-hint .ic { width: 17px; height: 17px; color: var(--purple); margin-top: 1px; }
+.kal-panel { display: grid; gap: 10px; min-width: 0; }
+.kal-step { display: flex; align-items: center; gap: 10px; font: 800 14.5px var(--font-head); margin-top: 6px; }
+.kal-step:first-child { margin-top: 0; }
+.kal-num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--purple); color: #fff; font: 800 12.5px var(--font-head); flex: none; }
+.kal-xy { margin-left: auto; font: 600 12.5px var(--font-body); color: var(--purple); background: var(--purple-50); padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kal-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kal-item { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; min-height: 54px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); min-width: 0; transition: border-color .12s, background .12s; }
+.kal-item:hover { background: #FFF8EC; }
+.kal-item[aria-selected="true"] { border-color: var(--purple); background: var(--purple-50); box-shadow: 0 0 0 3px rgba(107, 47, 143, .10); }
+.kal-item span { min-width: 0; display: flex; flex-direction: column; }
+.kal-item b { font: 700 13.5px var(--font-head); }
+.kal-item small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kal-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--line); }
+.kal-move { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.dpad { display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 4px; flex: none; }
+.dpad button { border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--purple); display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; transition: background .1s, transform .06s; }
+.dpad button:hover { background: var(--purple-50); }
+.dpad button:active { transform: scale(.94); background: var(--purple-50); }
+.dpad .ic { width: 22px; height: 22px; stroke-width: 2.6; }
+.dp-up { grid-area: 1 / 2; } .dp-up .ic { transform: rotate(180deg); }
+.dp-left { grid-area: 2 / 1; } .dp-left .ic { transform: rotate(90deg); }
+.dp-right { grid-area: 2 / 3; } .dp-right .ic { transform: rotate(-90deg); }
+.dp-down { grid-area: 3 / 2; }
+.dp-mid { grid-area: 2 / 2; display: grid; place-items: center; color: #C9B99A; }
+.dp-mid .ic { width: 20px; height: 20px; }
+.kal-stepsize { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px; }
+.kal-stepsize small { font-size: 12px; }
+.seg-xs { padding: 4px; border-radius: 14px; margin: 0; gap: 3px; }
+.seg-xs .seg-btn { min-height: 38px; font-size: 13.5px; border-radius: 10px; }
+#kal-stepsize { grid-template-columns: repeat(3, 1fr); }
+#kal-align { grid-template-columns: repeat(3, 1fr); }
+.kal-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stepper { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.stepper-ctl { display: flex; align-items: stretch; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.stepper-ctl button { width: 44px; flex: none; font: 800 20px var(--font-head); color: var(--purple); background: #FFF8EC; min-height: 44px; }
+.stepper-ctl button:hover { background: var(--purple-50); }
+.stepper-ctl input { flex: 1; min-width: 0; border: 0; text-align: center; font: 600 16px var(--font-body); font-variant-numeric: tabular-nums; background: transparent; -moz-appearance: textfield; }
+.stepper-ctl input::-webkit-outer-spin-button, .stepper-ctl input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper-ctl input:focus { outline: none; background: var(--purple-50); }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sw-btn { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px var(--line); transition: transform .1s; }
+.sw-btn:hover { transform: scale(1.08); }
+.sw-btn.active { box-shadow: 0 0 0 3px var(--purple); }
+.sw-custom { position: relative; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed #C9B99A; display: grid; place-items: center; font: 800 16px var(--font-head); color: var(--muted); cursor: pointer; overflow: hidden; }
+.sw-custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.card-kalibrasi .kal-actions { justify-content: flex-start; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.card-kalibrasi .kal-actions .btn[disabled] { opacity: .45; }
+@media (max-width: 767px) {
+  .kal-hint { font-size: 12.5px; margin-top: 8px; }
+  .kal-hint .hide-sm { display: none; }
+  .kal-stage { margin-left: -2px; margin-right: -2px; }
+}
+@media (min-width: 768px) {
+  .kal-stage { top: 84px; }
+}
+@media (min-width: 1024px) {
+  .kal-layout { grid-template-columns: minmax(0, 1.6fr) minmax(330px, 1fr); gap: 22px; }
+  .kal-stage { top: 90px; padding: 0; margin: 0; }
+}
+
 @media (min-width: 1100px) and (max-height: 760px) {
   .live-preview { top: 84px; }
 }

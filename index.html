@@ -16,10 +16,6 @@
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
   <link rel="stylesheet" href="css/style.css">
-  <script>
-    // Tampilkan kerangka aplikasi seketika jika sesi masih ada (tanpa kedip halaman login).
-    try { var s = JSON.parse(localStorage.getItem('piagam_state_v1') || 'null'); if (s && s.token && Date.now() - (s.lastActive || 0) < 3600000) document.documentElement.classList.add('has-session'); } catch (e) {}
-  </script>
 </head>
 <body>
 <!-- ============ IKON (SVG sprite) ============ -->
@@ -410,7 +406,7 @@
           </div>
 
           <div class="card set-card">
-            <div class="set-head"><span class="set-ic ic-yellow"><svg class="ic"><use href="#i-folder"/></svg></span><div><h3 class="h-card">File Template Piagam</h3><small class="muted">Gambar dari folder Drive "Piagam AHE/Template"</small></div><span class="pill" id="tpl-drive-status"></span></div>
+            <div class="set-head"><span class="set-ic ic-yellow"><svg class="ic"><use href="#i-folder"/></svg></span><div><h3 class="h-card">File Template Piagam</h3><small class="muted">Nama file bebas · otomatis dikompres agar ringan</small></div><span class="pill" id="tpl-drive-status"></span></div>
             <div class="file-row" data-file="ahe">
               <span class="file-thumb thumb-ahe">AHE</span>
               <span class="file-meta"><b data-fname>—</b><small class="muted" data-fdesc>—</small></span>
@@ -421,21 +417,77 @@
               <span class="file-meta"><b data-fname>—</b><small class="muted" data-fdesc>—</small></span>
               <button type="button" class="btn-text c-ala" data-upload="ala">Ganti</button>
             </div>
-            <small class="muted note">Format JPG/PNG, lanskap, ± 1500 px (maks. 8 MB). File lama tidak dihapus — hanya diberi nama "_lama".</small>
+            <button type="button" class="btn btn-ghost btn-sm btn-block" id="btn-tpl-refresh"><svg class="ic"><use href="#i-refresh"/></svg><span>Muat ulang dari Google Drive</span></button>
+            <small class="muted note"><b>Cara 1:</b> tekan <b>Unggah/Ganti</b> lalu pilih gambar (JPG/PNG, lanskap). Di laptop, file juga bisa diseret ke kotak di atas.<br>
+            <b>Cara 2:</b> taruh gambar langsung di Google Drive, folder <b>Piagam AHE › Template › Ahe</b> atau <b>› Ala</b> (nama file bebas), lalu tekan <b>Muat ulang dari Google Drive</b>. Gambar terbaru yang dipakai; template lama dipindah ke folder <b>Arsip</b>.</small>
           </div>
 
-          <div class="card set-card card-kalibrasi">
-            <div class="set-head"><span class="set-ic ic-ahe"><svg class="ic"><use href="#i-crosshair"/></svg></span><div><h3 class="h-card">Kalibrasi Posisi Teks</h3><small class="muted">Geser posisi isian agar pas dengan garis pada template</small></div></div>
-            <div class="seg seg-sm" id="seg-kal">
-              <button type="button" class="seg-btn" data-jenis="ahe">Piagam Ahe</button>
-              <button type="button" class="seg-btn" data-jenis="ala">Piagam Ala</button>
+          <div class="card set-card card-kalibrasi" id="card-kalibrasi">
+            <div class="set-head">
+              <span class="set-ic ic-ahe"><svg class="ic"><use href="#i-crosshair"/></svg></span>
+              <div><h3 class="h-card">Kalibrasi Posisi Teks</h3><small class="muted">Cocokkan letak tulisan dengan garis pada template · tersimpan otomatis</small></div>
+              <span class="pill pill-ok" id="kal-status"><svg class="ic"><use href="#i-cloud-check"/></svg>Tersimpan</span>
             </div>
-            <div class="canvas-wrap kal-canvas"><canvas id="kal-canvas" width="1491" height="1054"></canvas></div>
-            <label class="check-row"><input type="checkbox" id="kal-markers" checked> Tampilkan titik acuan &amp; batas lebar</label>
-            <div id="kal-fields" class="kal-fields"></div>
-            <div class="kal-actions">
-              <button type="button" class="btn btn-ghost btn-sm" id="kal-reset"><svg class="ic"><use href="#i-reset"/></svg>Kembalikan Bawaan</button>
-              <button type="button" class="btn btn-primary btn-sm" id="kal-save"><svg class="ic"><use href="#i-check"/></svg>Simpan Posisi</button>
+            <div class="kal-top">
+              <div class="seg seg-sm" id="seg-kal">
+                <button type="button" class="seg-btn" data-jenis="ahe"><svg class="ic"><use href="#i-book"/></svg>Piagam Ahe</button>
+                <button type="button" class="seg-btn" data-jenis="ala"><svg class="ic"><use href="#i-calc"/></svg>Piagam Ala</button>
+              </div>
+              <div class="kal-toggles">
+                <label class="check-row"><input type="checkbox" id="kal-markers" checked> Kotak bantu</label>
+                <label class="check-row"><input type="checkbox" id="kal-long"> Uji teks panjang</label>
+              </div>
+            </div>
+            <div class="kal-layout">
+              <div class="kal-stage">
+                <div class="canvas-wrap kal-canvas"><canvas id="kal-canvas" width="1491" height="1054" tabindex="0" aria-label="Pratinjau kalibrasi. Seret teks untuk memindahkan, atau gunakan tombol panah."></canvas></div>
+                <p class="kal-hint"><svg class="ic"><use href="#i-info"/></svg><span><b>Seret tulisan</b> di gambar untuk memindahkannya<span class="hide-sm">. Atau pilih kolom, lalu <b>ketuk</b> posisi barunya</span>.</span></p>
+              </div>
+              <div class="kal-panel">
+                <div class="kal-step"><span class="kal-num">1</span><b>Pilih kolom</b></div>
+                <div class="kal-list" id="kal-list" role="listbox" aria-label="Kolom isian"></div>
+
+                <div class="kal-step"><span class="kal-num">2</span><b>Geser posisi</b><span class="kal-xy" id="kal-xy"></span></div>
+                <div class="kal-move">
+                  <div class="dpad" aria-label="Geser">
+                    <button type="button" class="dp-up" data-move="0,-1" aria-label="Geser ke atas"><svg class="ic"><use href="#i-chevron-down"/></svg></button>
+                    <button type="button" class="dp-left" data-move="-1,0" aria-label="Geser ke kiri"><svg class="ic"><use href="#i-chevron-down"/></svg></button>
+                    <span class="dp-mid"><svg class="ic"><use href="#i-crosshair"/></svg></span>
+                    <button type="button" class="dp-right" data-move="1,0" aria-label="Geser ke kanan"><svg class="ic"><use href="#i-chevron-down"/></svg></button>
+                    <button type="button" class="dp-down" data-move="0,1" aria-label="Geser ke bawah"><svg class="ic"><use href="#i-chevron-down"/></svg></button>
+                  </div>
+                  <div class="kal-stepsize">
+                    <span class="label sm">Jarak per tekan</span>
+                    <div class="seg seg-xs" id="kal-stepsize">
+                      <button type="button" class="seg-btn" data-step="1">1</button>
+                      <button type="button" class="seg-btn active" data-step="5">5</button>
+                      <button type="button" class="seg-btn" data-step="20">20</button>
+                    </div>
+                    <small class="muted">Tahan tombol untuk geser terus</small>
+                  </div>
+                </div>
+
+                <div class="kal-step"><span class="kal-num">3</span><b>Ukuran &amp; lebar</b></div>
+                <div class="kal-row2">
+                  <div class="stepper" data-prop="size" data-d="1"><span class="label sm">Ukuran huruf</span>
+                    <div class="stepper-ctl"><button type="button" data-inc="-1" aria-label="Perkecil huruf">−</button><input type="number" inputmode="numeric" aria-label="Ukuran huruf"><button type="button" data-inc="1" aria-label="Perbesar huruf">+</button></div></div>
+                  <div class="stepper" data-prop="maxW" data-d="10"><span class="label sm">Lebar maksimum</span>
+                    <div class="stepper-ctl"><button type="button" data-inc="-1" aria-label="Persempit">−</button><input type="number" inputmode="numeric" aria-label="Lebar maksimum"><button type="button" data-inc="1" aria-label="Perlebar">+</button></div></div>
+                </div>
+
+                <div class="kal-step"><span class="kal-num">4</span><b>Perataan &amp; warna</b></div>
+                <div class="seg seg-xs" id="kal-align">
+                  <button type="button" class="seg-btn" data-align="left">Kiri</button>
+                  <button type="button" class="seg-btn" data-align="center">Tengah</button>
+                  <button type="button" class="seg-btn" data-align="right">Kanan</button>
+                </div>
+                <div class="swatches" id="kal-colors"></div>
+
+                <div class="kal-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" id="kal-undo" disabled><svg class="ic"><use href="#i-reset"/></svg>Urungkan</button>
+                  <button type="button" class="btn btn-ghost btn-sm" id="kal-reset"><svg class="ic"><use href="#i-refresh"/></svg>Posisi Bawaan</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -474,7 +526,7 @@
 
 <div id="overlay-root"></div>
 <div id="toast-root" class="toast-root" aria-live="polite"></div>
-<input type="file" id="file-template" accept="image/jpeg,image/png" hidden>
+<input type="file" id="file-template" accept="image/*" hidden>
 
 <script src="js/config.js"></script>
 <script src="js/core.js"></script>

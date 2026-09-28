@@ -87,7 +87,7 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState !== 'visible' || !Store.s.token) return;
         if (this.checkIdle()) return;
-        if (Date.now() - ui.lastBoot > 5 * 60000) App.revalidate();
+        if (Date.now() - ui.lastBoot > 5 * 60000) App.revalidate(); else Api.warmup();
       });
     },
     idleLimit() { return (CFG.SESI_MENIT || 60) * 60000; },
@@ -117,8 +117,8 @@
       U.ls.set('piagam_last_user', username);
       f.password.value = '';
       ui.lastBoot = Date.now();
+      history.replaceState(null, '', location.pathname + location.search + '#/dashboard');
       App.enter();
-      if (!location.hash || location.hash === '#' || location.hash === '#/') location.hash = '#/dashboard';
       Outbox.schedule(0);
       toast('Selamat datang, ' + (Store.s.user ? Store.s.user.username : username) + '!');
     },
@@ -171,10 +171,12 @@
     route() {
       if (!Store.s.token) return;
       Dropdown.close();
+      Kalibrasi.flush();
       const [p, a, b] = location.hash.replace(/^#\/?/, '').split('/').map((x) => decodeURIComponent(x || ''));
       let page = p || 'dashboard', title = '', accent = 'ahe', nav = page, back = null;
       switch (page) {
         case 'buat':
+          Api.warmup();
           Buat.openNew(a === 'ala' || a === 'ahe' ? a : Buat.jenis);
           title = 'Buat Piagam Baru'; accent = Buat.jenis; break;
         case 'edit':
@@ -188,6 +190,7 @@
         case 'riwayat':
           Riwayat.open(a); title = 'Riwayat Piagam'; break;
         case 'pengaturan':
+          Api.warmup();
           Pengaturan.render(); title = 'Pengaturan Sistem'; break;
         default:
           page = nav = 'dashboard'; Dashboard.render(); title = 'Dashboard';
@@ -813,6 +816,13 @@
       });
       $$('[data-upload]').forEach((b) => b.addEventListener('click', () => { this.uploadJenis = b.dataset.upload; $('#file-template').click(); }));
       $('#file-template').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) this.upload(this.uploadJenis, f); });
+      $('#btn-tpl-refresh').addEventListener('click', () => this.refreshDrive());
+      $$('.file-row').forEach((row) => {
+        const j = row.dataset.file;
+        row.addEventListener('dragover', (e) => { e.preventDefault(); row.classList.add('drag'); });
+        row.addEventListener('dragleave', () => row.classList.remove('drag'));
+        row.addEventListener('drop', (e) => { e.preventDefault(); row.classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) this.upload(j, f); });
+      });
       Kalibrasi.init();
     },
     render() {
@@ -840,8 +850,8 @@
         row.querySelector('[data-fname]').textContent = m ? m.name : 'Belum ada template';
         const dims = Cert.Templates.dims(j);
         row.querySelector('[data-fdesc]').textContent = m
-          ? `${dims ? dims.w + ' × ' + dims.h + ' px • ' : ''}${m.size ? Math.round(m.size / 1024) + ' KB • ' : ''}Folder /Template`
-          : 'Unggah gambar JPG/PNG lanskap';
+          ? `${dims ? dims.w + ' × ' + dims.h + ' px • ' : ''}${m.size ? Math.round(m.size / 1024) + ' KB • ' : ''}Drive: Template/${JENIS_LABEL[j]}`
+          : 'Nama file bebas · JPG/PNG lanskap';
         row.querySelector('[data-upload]').textContent = m ? 'Ganti' : 'Unggah';
         const th = row.querySelector('.file-thumb');
         const img = Cert.Templates.peek(j);
@@ -891,91 +901,284 @@
       Outbox.push({ type: 'saveTemplate', jenis: j, nomor, kepala });
       toast(kosong ? `Template ${JENIS_LABEL[j]} dikosongkan.` : `Template ${JENIS_LABEL[j]} disimpan.`);
     },
+    /**
+     * Unggah template: gambar apa pun (nama bebas) → dikompres di HP → dikirim.
+     * Jika koneksi putus / lambat, aplikasi mengecek sendiri apakah unggahan sebenarnya berhasil.
+     */
     async upload(j, file) {
-      if (!/^image\/(jpeg|png)$/.test(file.type)) { toast('File harus berformat JPG atau PNG.', 'error'); return; }
-      if (file.size > 8 * 1024 * 1024) { toast('Ukuran file maksimal 8 MB.', 'error'); return; }
-      const btn = $(`[data-upload="${j}"]`);
-      const label = btn.textContent;
-      btn.textContent = 'Mengunggah…'; btn.disabled = true;
+      if (!file || !/^image\//.test(file.type || '') && !/\.(jpe?g|png|webp|heic)$/i.test(file.name || '')) { toast('Pilih file gambar (JPG atau PNG).', 'error'); return; }
+      if (file.size > 30 * 1024 * 1024) { toast('File terlalu besar (maks. 30 MB).', 'error'); return; }
+      const row = $(`.file-row[data-file="${j}"]`);
+      const btn = row.querySelector('[data-upload]');
+      const desc = row.querySelector('[data-fdesc]');
+      const status = (t) => { desc.textContent = t; };
+      btn.disabled = true; btn.textContent = '…'; row.classList.add('busy');
       try {
-        let blob = file;
-        const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => { res(i); }; i.onerror = () => rej(new Error('Gambar tidak bisa dibaca.')); i.src = u; });
-        if (img.naturalWidth < img.naturalHeight) toast('Perhatian: gambar ini potret, template piagam biasanya lanskap.', 'info', 4000);
-        // Jaga template tetap ringan untuk HP: perkecil jika sangat besar
-        if (file.size > 2.5 * 1024 * 1024 || img.naturalWidth > 3000) {
-          const scale = Math.min(1, 3000 / img.naturalWidth);
-          const c = document.createElement('canvas');
-          c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
+        status('Menyiapkan gambar…');
+        const prep = await siapkanGambar(file);
+        if (prep.w < prep.h) toast('Perhatian: gambar ini potret, template piagam biasanya lanskap.', 'info', 4000);
+        status(`Mengunggah ${Math.round(prep.blob.size / 1024)} KB…`);
+        const base64 = await U.blobToBase64(prep.blob);
+        const sebelum = (Store.s.templateFiles[j] || {}).version || '';
+        let res = await Api.call('uploadTemplate', { jenis: j, mime: prep.blob.type, base64, name: file.name || '' }, { timeout: 150000 });
+        if (!res.success && res.network) {
+          // Jawaban server tidak sampai — cek apakah file sebenarnya sudah tersimpan di Drive.
+          status('Memeriksa hasil unggahan…');
+          const cek = await Api.call('refreshTemplates', {}, { timeout: 60000 });
+          if (cek.success && cek.data && cek.data[j] && cek.data[j].version !== sebelum) res = { success: true, data: cek.data[j] };
         }
-        const base64 = await U.blobToBase64(blob);
-        const res = await Api.call('uploadTemplate', { jenis: j, mime: blob.type || file.type, base64 });
-        if (!res.success) throw new Error(res.message || 'Gagal mengunggah.');
+        if (!res.success) throw new Error((res.message || 'Gagal mengunggah.') + (res.network ? ' Coba lagi, atau pakai Cara 2 (taruh gambar langsung di Google Drive).' : ''));
         Store.s.templateFiles[j] = res.data;
         Store.saveNow();
-        await U.idb.set('tpl_' + j, { version: res.data.version, blob });
+        await U.idb.set('tpl_' + j, { version: res.data.version, blob: prep.blob });
         await Cert.Templates.get(j).catch(() => null);
-        this.files();
         Kalibrasi.draw();
         toast(`Template ${JENIS_LABEL[j]} berhasil diganti.`);
       } catch (e) {
-        toast(e.message, 'error');
+        toast(e.message, 'error', 6000);
       } finally {
-        btn.disabled = false;
-        btn.textContent = Store.s.templateFiles[j] ? 'Ganti' : label;
+        btn.disabled = false; row.classList.remove('busy');
+        this.files();
+      }
+    },
+    async refreshDrive() {
+      const btn = $('#btn-tpl-refresh');
+      busy(btn, true);
+      const res = await Api.call('refreshTemplates', {}, { timeout: 60000 });
+      if (res.success) {
+        Store.s.templateFiles = res.data || { ahe: null, ala: null };
+        Store.saveNow();
+        await Promise.all(['ahe', 'ala'].map((j) => Cert.Templates.get(j).catch(() => null)));
+        busy(btn, false);
+        this.files(); Kalibrasi.draw();
+        const ada = ['ahe', 'ala'].filter((j) => Store.s.templateFiles[j]).map((j) => JENIS_LABEL[j]);
+        toast(ada.length ? `Template dimuat dari Drive: ${ada.join(' & ')}.` : 'Belum ada gambar di folder Template/Ahe maupun Template/Ala.', ada.length ? 'success' : 'info', 4000);
+      } else {
+        busy(btn, false);
+        toast(res.message || 'Gagal memuat ulang dari Drive.', 'error');
       }
     }
   };
 
-  /* Kalibrasi posisi teks: ubah angka atau ketuk kanvas untuk memindahkan titik */
+  /** Siapkan gambar template: perkecil & kompres agar cepat diunggah dan ringan dibuka di HP. */
+  async function siapkanGambar(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Gambar tidak bisa dibaca. Gunakan file JPG atau PNG.')); i.src = url; });
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (file.type === 'image/jpeg' && file.size <= 900 * 1024 && Math.max(w, h) <= 2400) return { blob: file, w, h };
+      const k = Math.min(1, 2000 / Math.max(w, h));               // sisi terpanjang maks. 2000 px (template ± 1500 px)
+      const c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);   // latar putih untuk PNG transparan
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Gagal memproses gambar.'))), 'image/jpeg', 0.9));
+      return { blob, w: c.width, h: c.height };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /* =====================================================================
+     KALIBRASI POSISI TEKS — seret teks langsung di pratinjau, tersimpan otomatis
+     ===================================================================== */
   const Kalibrasi = {
-    jenis: 'ahe', work: null, active: 'nama',
+    jenis: 'ahe', work: null, active: 'nama', step: 5, undo: [], drag: null, saveTimer: null, hold: null,
+    COLORS: ['#2B1B3D', '#000000', '#4E1F6B', '#6B2F8F', '#C2185B', '#C25E0A', '#1E4FA8', '#FFFFFF'],
     SAMPLE: {
       ahe: { nomor: '045/AHE-SGT/IX/2026', nama: 'Ahmad Fadhil Prasetyo', ttl: 'Sangatta, 12 Mei 2018', unit: 'Unit Sangatta Utara', tglLulus: '2026-09-18', kepala: 'Hj. Sri Wahyuni, S.Pd.' },
       ala: { nomor: '018/ALA-SGT/IX/2026', nama: 'Siti Nur Azizah', kelompok: 'Pertambahan & Pengurangan', desa: 'Teluk Lingga', tglLulus: '2026-09-17', kepala: 'Hj. Sri Wahyuni, S.Pd.' }
     },
+    LONG: {
+      ahe: { nomor: '1234/AHE-SGT-UTARA/IX/2026', nama: 'Muhammad Abdurrahman Al-Fatih Ramadhan Prasetyo', ttl: 'Sangatta Utara, Kutai Timur, 28 September 2018', unit: 'Unit Pembelajaran Sangatta Utara Kota', tglLulus: '2026-09-30', kepala: 'Hj. Sri Wahyuningsih Rahmawati, S.Pd., M.Pd.' },
+      ala: { nomor: '1234/ALA-SGT-UTARA/IX/2026', nama: 'Nurul Aisyah Salsabila Putri Ramadhani Lestari', kelompok: 'Pertambahan & Pengurangan', desa: 'Singa Gembara Sangatta Utara', tglLulus: '2026-09-30', kepala: 'Hj. Sri Wahyuningsih Rahmawati, S.Pd., M.Pd.' }
+    },
     init() {
-      $$('#seg-kal .seg-btn').forEach((b) => b.addEventListener('click', () => { this.jenis = b.dataset.jenis; this.active = 'nama'; this.render(); }));
+      $$('#seg-kal .seg-btn').forEach((b) => b.addEventListener('click', () => { if (b.dataset.jenis === this.jenis) return; this.flush(); this.jenis = b.dataset.jenis; this.active = 'nama'; this.render(); }));
       $('#kal-markers').addEventListener('change', () => this.draw());
-      $('#kal-save').addEventListener('click', () => this.save());
-      $('#kal-reset').addEventListener('click', () => this.reset());
-      const box = $('#kal-fields');
-      box.addEventListener('input', (e) => {
-        const card = e.target.closest('[data-k]'); if (!card) return;
-        const k = card.dataset.k, p = e.target.dataset.p;
-        if (p === 'color') this.work.fields[k].color = e.target.value;
-        else { const v = parseFloat(e.target.value); if (isFinite(v)) this.work.fields[k][p] = v; }
-        this.active = k; this.drawRaf();
+      $('#kal-long').addEventListener('change', () => { this.buildList(); this.draw(); });
+      $$('#kal-stepsize .seg-btn').forEach((b) => b.addEventListener('click', () => {
+        this.step = +b.dataset.step;
+        $$('#kal-stepsize .seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+      }));
+      $('#kal-list').addEventListener('click', (e) => { const it = e.target.closest('[data-k]'); if (it) this.select(it.dataset.k); });
+
+      // D-pad: tekan = geser sekali, tahan = geser terus
+      $$('.dpad [data-move]').forEach((b) => {
+        const [dx, dy] = b.dataset.move.split(',').map(Number);
+        const stop = () => { if (this.hold) { clearTimeout(this.hold.t); clearInterval(this.hold.i); this.hold = null; this.scheduleSave(); } };
+        b.addEventListener('pointerdown', (e) => {
+          e.preventDefault(); b.setPointerCapture(e.pointerId);
+          this.snapshot(); this.nudge(dx, dy);
+          this.hold = { t: setTimeout(() => { this.hold.i = setInterval(() => this.nudge(dx, dy), 60); }, 380) };
+        });
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => b.addEventListener(ev, stop));
+        b.addEventListener('click', (e) => { if (e.detail === 0) { this.snapshot(); this.nudge(dx, dy); this.scheduleSave(); } }); // keyboard
       });
-      box.addEventListener('focusin', (e) => { const card = e.target.closest('[data-k]'); if (card && this.active !== card.dataset.k) { this.active = card.dataset.k; this.drawRaf(); } });
-      $('#kal-canvas').addEventListener('click', (e) => {
-        // ketuk kanvas = pindahkan titik acuan kolom yang sedang dipilih
-        const c = e.currentTarget, r = c.getBoundingClientRect();
-        const L = this.layout();
-        const x = Math.round(((e.clientX - r.left) / r.width) * L.refW);
-        const y = Math.round(((e.clientY - r.top) / r.height) * L.refH);
-        const f = this.work.fields[this.active]; if (!f) return;
-        f.x = x; f.y = y;
-        const card = $(`#kal-fields [data-k="${this.active}"]`);
-        card.querySelector('[data-p=x]').value = x; card.querySelector('[data-p=y]').value = y;
-        this.draw();
+
+      // Ukuran & lebar: tombol − / + dan ketik angka
+      $$('.stepper').forEach((st) => {
+        const prop = st.dataset.prop, d = +st.dataset.d, inp = st.querySelector('input');
+        st.querySelectorAll('[data-inc]').forEach((b) => b.addEventListener('click', () => this.change((f) => { f[prop] = Math.max(prop === 'size' ? 6 : 20, Math.round(f[prop] + d * +b.dataset.inc)); })));
+        inp.addEventListener('change', () => { const v = parseFloat(inp.value); if (isFinite(v) && v > 0) this.change((f) => { f[prop] = Math.round(v); }); else this.fillEditor(); });
+      });
+      $$('#kal-align .seg-btn').forEach((b) => b.addEventListener('click', () => this.change((f) => { f.align = b.dataset.align; })));
+      $('#kal-colors').innerHTML = this.COLORS.map((c) => `<button type="button" class="sw-btn" data-color="${c}" style="background:${c}" aria-label="Warna ${c}"></button>`).join('')
+        + '<label class="sw-custom" title="Warna lain"><input type="color" id="kal-color-custom" aria-label="Pilih warna lain"><span>+</span></label>';
+      $('#kal-colors').addEventListener('click', (e) => { const b = e.target.closest('[data-color]'); if (b) this.change((f) => { f.color = b.dataset.color; }); });
+      $('#kal-color-custom').addEventListener('input', (e) => this.change((f) => { f.color = e.target.value; }, false));
+      $('#kal-color-custom').addEventListener('change', () => this.scheduleSave());
+      $('#kal-undo').addEventListener('click', () => this.undoLast());
+      $('#kal-reset').addEventListener('click', () => this.reset());
+
+      // Seret langsung di kanvas
+      const cv = $('#kal-canvas');
+      cv.addEventListener('pointerdown', (e) => this.down(e));
+      cv.addEventListener('pointermove', (e) => this.move(e));
+      ['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => this.up()));
+      cv.addEventListener('keydown', (e) => {
+        const m = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
+        if (!m) return;
+        e.preventDefault();
+        this.snapshot();
+        const f = this.f(), k = e.shiftKey ? 10 : 1;
+        f.x += m[0] * k; f.y += m[1] * k;
+        this.fillEditor(); this.drawRaf(); this.scheduleSave();
       });
       this.drawRaf = U.raf(() => this.draw());
     },
+    sample() { return ($('#kal-long').checked ? this.LONG : this.SAMPLE)[this.jenis]; },
     layout() { return Cert.layout(this.jenis, this.work); },
+    f() { return this.work.fields[this.active]; },
     render() {
       $$('#seg-kal .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.jenis === this.jenis));
       const L = Cert.layout(this.jenis);
       this.work = { fields: {} };
       Object.keys(L.fields).forEach((k) => { const f = L.fields[k]; this.work.fields[k] = { x: f.x, y: f.y, size: f.size, maxW: f.maxW, color: f.color, align: f.align }; });
-      $('#kal-fields').innerHTML = Object.keys(L.fields).map((k) => {
-        const f = L.fields[k];
-        const num = (p, lbl) => `<label>${lbl}<input type="number" inputmode="decimal" step="1" data-p="${p}" value="${f[p]}"></label>`;
-        return `<div class="kal-field" data-k="${k}"><div class="kal-field-head"><span>${esc(f.label)}</span><input type="color" data-p="color" value="${f.color}" aria-label="Warna teks ${esc(f.label)}"></div>
-          <div class="kal-grid">${num('x', 'X')}${num('y', 'Y')}${num('size', 'Ukuran')}${num('maxW', 'Lebar maks')}</div></div>`;
+      if (!this.work.fields[this.active]) this.active = 'nama';
+      this.undo = []; $('#kal-undo').disabled = true;
+      this.status('saved');
+      this.buildList(); this.fillEditor(); this.draw();
+    },
+    buildList() {
+      const L = Cert.DEFAULT[this.jenis].fields, smp = this.sample();
+      $('#kal-list').innerHTML = Object.keys(this.work.fields).map((k) => {
+        const val = Cert.valueOf(this.jenis, k, smp);
+        return `<button type="button" class="kal-item" role="option" data-k="${k}" aria-selected="${k === this.active}">
+          <i class="kal-dot" style="background:${this.work.fields[k].color}"></i>
+          <span><b>${esc(L[k].label)}</b><small>${esc(val || '—')}</small></span></button>`;
       }).join('');
-      this.draw();
+    },
+    select(k) {
+      if (!this.work.fields[k]) return;
+      this.active = k;
+      $$('#kal-list .kal-item').forEach((it) => it.setAttribute('aria-selected', String(it.dataset.k === k)));
+      this.fillEditor(); this.drawRaf();
+    },
+    fillEditor() {
+      const f = this.f();
+      $('#kal-xy').textContent = `X ${Math.round(f.x)} · Y ${Math.round(f.y)}`;
+      $$('.stepper').forEach((st) => { const inp = st.querySelector('input'); if (document.activeElement !== inp) inp.value = Math.round(f[st.dataset.prop]); });
+      $$('#kal-align .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.align === f.align));
+      $$('#kal-colors [data-color]').forEach((b) => b.classList.toggle('active', b.dataset.color.toLowerCase() === String(f.color).toLowerCase()));
+      $('#kal-color-custom').value = /^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#2b1b3d';
+      const dot = $(`#kal-list [data-k="${this.active}"] .kal-dot`); if (dot) dot.style.background = f.color;
+    },
+    snapshot() {
+      this.undo.push(JSON.stringify(this.work));
+      if (this.undo.length > 60) this.undo.shift();
+      $('#kal-undo').disabled = false;
+    },
+    change(fn, snap) {
+      if (snap !== false) this.snapshot();
+      fn(this.f());
+      this.fillEditor(); this.drawRaf();
+      if (snap !== false) this.scheduleSave(); else this.status('saving');
+    },
+    nudge(dx, dy) { const f = this.f(); f.x += dx * this.step; f.y += dy * this.step; this.fillEditor(); this.drawRaf(); this.status('saving'); },
+    undoLast() {
+      const prev = this.undo.pop();
+      if (!prev) return;
+      this.work = JSON.parse(prev);
+      $('#kal-undo').disabled = !this.undo.length;
+      this.buildList(); this.fillEditor(); this.drawRaf(); this.scheduleSave();
+      toast('Perubahan terakhir diurungkan.', 'info', 1400);
+    },
+    status(st) {
+      const p = $('#kal-status');
+      p.className = 'pill ' + (st === 'saving' ? 'pill-warn' : 'pill-ok');
+      p.innerHTML = st === 'saving' ? '<svg class="ic"><use href="#i-refresh"/></svg>Menyimpan…' : '<svg class="ic"><use href="#i-cloud-check"/></svg>Tersimpan';
+    },
+    scheduleSave() { this.status('saving'); clearTimeout(this.saveTimer); this.saveTimer = setTimeout(() => this.save(), 600); },
+    save() {
+      clearTimeout(this.saveTimer); this.saveTimer = null;
+      const j = this.jenis;
+      Store.s.layouts[j] = JSON.parse(JSON.stringify(this.work));
+      Store.save();
+      Outbox.push({ type: 'saveLayout', jenis: j, layout: Store.s.layouts[j] });
+      this.status('saved');
+    },
+    flush() { if (this.saveTimer) this.save(); },
+    async reset() {
+      const ok = await Sheet.open({ icon: 'refresh', title: 'Kembalikan posisi bawaan?', subtitle: `Semua kolom Piagam ${JENIS_LABEL[this.jenis]} kembali ke koordinat awal PRD. Bisa diurungkan.`, actions: [{ label: 'Batal', value: false }, { label: 'Kembalikan', value: true, cls: 'btn-primary' }] });
+      if (!ok) return;
+      this.snapshot();
+      const undo = this.undo.slice();
+      Store.s.layouts[this.jenis] = null; Store.save();
+      Outbox.push({ type: 'saveLayout', jenis: this.jenis, layout: null });
+      this.render();
+      this.undo = undo; $('#kal-undo').disabled = false;
+      toast('Posisi bawaan dipulihkan.');
+    },
+    /* --- seret di kanvas --- */
+    toRef(e) {
+      const r = $('#kal-canvas').getBoundingClientRect(), L = this.layout();
+      return { x: ((e.clientX - r.left) / r.width) * L.refW, y: ((e.clientY - r.top) / r.height) * L.refH };
+    },
+    hit(p) {
+      const keys = Object.keys(this.work.fields);
+      keys.sort((a) => (a === this.active ? -1 : 0));                  // kolom aktif diprioritaskan
+      for (const k of keys) {
+        const f = this.work.fields[k];
+        const left = f.align === 'center' ? f.x - f.maxW / 2 : f.align === 'right' ? f.x - f.maxW : f.x;
+        const pad = 10;
+        if (p.x >= left - pad && p.x <= left + f.maxW + pad && p.y >= f.y - f.size - pad && p.y <= f.y + f.size * 0.35 + pad) return k;
+      }
+      return null;
+    },
+    down(e) {
+      const cv = $('#kal-canvas');
+      cv.focus({ preventScroll: true });
+      cv.setPointerCapture(e.pointerId);
+      const p = this.toRef(e), k = this.hit(p);
+      if (k) {
+        if (k !== this.active) this.select(k);
+        const f = this.f();
+        this.drag = { dx: p.x - f.x, dy: p.y - f.y, moved: false };
+      } else {
+        // ketuk area kosong = pindahkan kolom aktif ke titik itu
+        this.snapshot();
+        const f = this.f(); f.x = Math.round(p.x); f.y = Math.round(p.y);
+        this.drag = { dx: 0, dy: 0, moved: true };
+        this.fillEditor(); this.drawRaf(); this.status('saving');
+      }
+      cv.classList.add('dragging');
+    },
+    move(e) {
+      const p = this.toRef(e), cv = $('#kal-canvas');
+      if (!this.drag) { cv.style.cursor = this.hit(p) ? 'grab' : 'crosshair'; return; }
+      if (!this.drag.moved) { this.snapshot(); this.drag.moved = true; }
+      const f = this.f();
+      f.x = Math.round(p.x - this.drag.dx); f.y = Math.round(p.y - this.drag.dy);
+      $('#kal-xy').textContent = `X ${f.x} · Y ${f.y}`;
+      this.drawRaf(); this.status('saving');
+    },
+    up() {
+      $('#kal-canvas').classList.remove('dragging');
+      if (this.drag && this.drag.moved) { this.fillEditor(); this.scheduleSave(); }
+      this.drag = null;
     },
     draw() {
       if (!this.work) return;
@@ -987,24 +1190,8 @@
         Cert.Templates.get(j).catch(() => null).then(() => { c.parentElement.classList.remove('loading'); if (j === this.jenis) this.draw(); });
         return;
       }
-      Cert.fontsReady().then(() => { if (j === this.jenis) Cert.drawSync(c, j, this.SAMPLE[j], img, opts); });
-      Cert.drawSync(c, j, this.SAMPLE[j], img, opts);
-      $$('#kal-fields .kal-field').forEach((el) => { el.style.borderColor = el.dataset.k === this.active ? 'var(--orange)' : ''; });
-    },
-    save() {
-      const j = this.jenis;
-      Store.s.layouts[j] = JSON.parse(JSON.stringify(this.work));
-      Store.save();
-      Outbox.push({ type: 'saveLayout', jenis: j, layout: Store.s.layouts[j] });
-      toast(`Posisi teks Piagam ${JENIS_LABEL[j]} disimpan.`);
-    },
-    async reset() {
-      const ok = await Sheet.open({ icon: 'reset', title: 'Kembalikan posisi bawaan?', subtitle: `Kalibrasi Piagam ${JENIS_LABEL[this.jenis]} akan kembali ke koordinat awal PRD.`, actions: [{ label: 'Batal', value: false }, { label: 'Kembalikan', value: true, cls: 'btn-primary' }] });
-      if (!ok) return;
-      Store.s.layouts[this.jenis] = null; Store.save();
-      Outbox.push({ type: 'saveLayout', jenis: this.jenis, layout: null });
-      this.render();
-      toast('Posisi bawaan dipulihkan.');
+      Cert.drawSync(c, j, this.sample(), img, opts);
+      if (!this.fontsOk) Cert.fontsReady().then(() => { this.fontsOk = true; this.drawRaf(); });
     }
   };
 
@@ -1183,17 +1370,12 @@
     $('#demo-banner').hidden = !Api.demo;
     updateSyncUI();
 
-    const s = Store.s;
-    if (s.token && s.lastActive && Date.now() - s.lastActive < Auth.idleLimit()) {
-      // Stale-while-revalidate: tampil seketika dari cache, lalu segarkan dari server.
-      App.enter();
-      App.revalidate();
-      Outbox.schedule(300);
-    } else {
-      if (s.token) Store.clear();
-      App.showLogin(null);
-      setTimeout(() => { const f = $('#form-login'); (f.username.value ? f.password : f.username).focus({ preventScroll: true }); }, 50);
-    }
+    // Setiap kali link dibuka → selalu mulai dari halaman login.
+    // Sesi lama (jika ada) dimatikan juga di server. Perubahan yang belum terkirim tetap aman di antrean.
+    if (Store.s.token) { Api.call('logout'); Store.clear(); }
+    history.replaceState(null, '', location.pathname + location.search);
+    App.showLogin(null);
+    setTimeout(() => { const f = $('#form-login'); (f.username.value ? f.password : f.username).focus({ preventScroll: true }); }, 50);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

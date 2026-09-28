@@ -23,6 +23,13 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* abaikan */ } }
   };
 
+  // sessionStorage: data sesi hilang otomatis saat tab/browser ditutup
+  U.ss = {
+    get(k, d) { try { const v = sessionStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* abaikan */ } }
+  };
+
   U.debounce = (fn, ms) => { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; };
   U.idle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 300));
   U.raf = (fn) => { let q = false; return (...a) => { if (q) return; q = true; requestAnimationFrame(() => { q = false; fn(...a); }); }; };
@@ -133,12 +140,13 @@
     s: kosong(),
     listeners: [],
     load() {
-      const v = U.ls.get(KEY, null);
+      U.ls.del(KEY);                      // bersihkan sisa versi lama (dulu di localStorage)
+      const v = U.ss.get(KEY, null);
       this.s = Object.assign(kosong(), v || {});
       this.s.records = Object.assign({ ahe: [], ala: [] }, this.s.records || {});
       return this.s;
     },
-    saveNow() { U.ls.set(KEY, this.s); },
+    saveNow() { if (this.s.token) U.ss.set(KEY, this.s); },
     save: null,
     /** Terapkan data dari server (login/bootstrap). Operasi yang belum tersinkron tetap dipertahankan. */
     applyServer(data, pendingOps) {
@@ -172,7 +180,7 @@
     clear() {
       const keep = { lastUser: this.s.user && this.s.user.username };
       this.s = kosong();
-      U.ls.del(KEY);
+      U.ss.del(KEY); U.ls.del(KEY);
       return keep;
     },
     touch() { this.s.lastActive = Date.now(); },

@@ -13,11 +13,11 @@
     demo: DEMO,
 
     /** Panggil aksi backend. Selalu resolve ke {success, data?, message?, code?} — tidak pernah throw. */
-    async call(action, payload) {
+    async call(action, payload, opts) {
       const body = Object.assign({ action, token: Store.s.token }, payload || {});
       if (DEMO) return Mock.handle(body);
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), CFG.TIMEOUT_MS || 45000);
+      const timer = setTimeout(() => ctrl.abort(), (opts && opts.timeout) || CFG.TIMEOUT_MS || 45000);
       try {
         const res = await fetch(GAS_URL, {
           method: 'POST',
@@ -28,6 +28,7 @@
           signal: ctrl.signal
         });
         const text = await res.text();
+        Api.lastWarm = Date.now();                 // server baru saja aktif → tidak perlu ping
         try {
           return JSON.parse(text);
         } catch (e) {
@@ -36,7 +37,7 @@
       } catch (err) {
         const offline = !navigator.onLine;
         return {
-          success: false, network: true,
+          success: false, network: true, timeout: err.name === 'AbortError',
           message: err.name === 'AbortError' ? 'Server terlalu lama merespons. Coba lagi.' : (offline ? 'Tidak ada koneksi internet.' : 'Gagal terhubung ke server. Periksa koneksi Anda.')
         };
       } finally {
@@ -44,9 +45,11 @@
       }
     },
 
-    /** "Bangunkan" server GAS (cold start) segera saat halaman dibuka. */
-    warmup() {
-      if (DEMO) return;
+    /** "Bangunkan" server GAS (cold start) agar simpan berikutnya cepat. Maks. 1x per 3 menit. */
+    lastWarm: 0,
+    warmup(force) {
+      if (DEMO || (!force && Date.now() - this.lastWarm < 180000)) return;
+      this.lastWarm = Date.now();
       try { fetch(GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 'action=ping', { method: 'GET', cache: 'no-store' }).catch(() => {}); } catch (e) { /* abaikan */ }
     }
   };
@@ -260,11 +263,13 @@
           return { success: true, message: 'Akun admin berhasil diperbarui.', data: { username: u, mustChange: d.account.mustChange } };
         }
         case 'uploadTemplate': {
-          const meta = { id: 'demo-' + req.jenis, name: (req.jenis === 'ahe' ? 'Piagam_Ahe_1' : 'Piagam_Ala_1') + (req.mime === 'image/png' ? '.png' : '.jpg'), mime: req.mime, size: Math.round(req.base64.length * 0.75), version: 'demo-' + Date.now() };
+          const nama = String(req.name || '').replace(/\.(jpe?g|png|webp|heic|gif|bmp)$/i, '') || ('Template_' + (req.jenis === 'ahe' ? 'Ahe' : 'Ala'));
+          const meta = { id: 'demo-' + req.jenis, name: nama + (req.mime === 'image/png' ? '.png' : '.jpg'), mime: req.mime, size: Math.round(req.base64.length * 0.75), version: 'demo-' + Date.now() };
           await U.idb.set('demo_tpl_' + req.jenis, { meta, base64: req.base64 });
           d.files[req.jenis] = meta; this.persist();
           return { success: true, message: 'Template berhasil diganti.', data: meta };
         }
+        case 'refreshTemplates': return { success: true, data: d.files };
         case 'getTemplate': {
           const v = await U.idb.get('demo_tpl_' + req.jenis);
           if (!v) return { success: true, data: null };

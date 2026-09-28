@@ -36,12 +36,12 @@ Hasil setup:
 
 > `setupAplikasi()` aman dijalankan ulang: data yang sudah ada tidak dihapus.
 
-### 1.3 Unggah template piagam
+### 1.3 Unggah template piagam (nama file bebas)
 Pilih salah satu cara:
-- **Lewat aplikasi (paling mudah):** setelah login, buka **Pengaturan → File Template Piagam → Unggah**.
-- **Lewat Google Drive:** unggah `Piagam_Ahe_1.jpg` dan `Piagam_Ala_1.jpg` ke folder **Piagam AHE / Template**, lalu jalankan fungsi `cekTemplate` untuk memastikan terbaca.
+- **Cara 1, lewat aplikasi (paling mudah):** setelah login, buka **Pengaturan → File Template Piagam → Unggah/Ganti**, lalu pilih gambarnya. Di laptop, file juga bisa diseret ke kotak Ahe/Ala. Gambar otomatis diperkecil & dikompres agar cepat diunggah.
+- **Cara 2, lewat Google Drive:** taruh gambar (nama bebas) di folder **Piagam AHE › Template › Ahe** atau **› Ala**, lalu di aplikasi tekan **Muat ulang dari Google Drive**.
 
-Mengganti template di kemudian hari cukup dengan mengunggah file baru. Aplikasi memakai file **terbaru** yang namanya diawali `Piagam_Ahe` / `Piagam_Ala`.
+Gambar **terbaru** di folder Ahe/Ala otomatis dipakai. Template lama yang diganti lewat aplikasi dipindah ke folder **Template › Arsip** (tidak dihapus).
 
 ### 1.4 Deploy sebagai Web App
 1. Klik **Terapkan (Deploy) → Deployment baru**.
@@ -106,8 +106,9 @@ Jika tampilan masih versi lama, tekan **Ctrl+Shift+R**.
 1. Login `admin` / `ahe12345` → buka **Pengaturan → Akun Admin** → ganti username & kata sandi.
 2. **Pengaturan → Template Isian Otomatis**: isi Nomor awal & Nama Kepala Unit untuk Ahe dan Ala.
 3. **Pengaturan → Kalibrasi Posisi Teks**: cocokkan posisi tulisan dengan garis template resmi.
-   - Pilih kolom (misal *Nama Lengkap*), lalu **ketuk titik di kanvas** untuk memindahkannya, atau ubah angka X / Y / Ukuran / Lebar maks.
-   - Tekan **Simpan Posisi**. Koordinat awal diambil dari PRD §7.3.
+   - **Seret tulisan** langsung di gambar pratinjau, atau pilih kolom lalu **ketuk** posisi barunya.
+   - Rapikan dengan tombol panah (tahan untuk geser terus), ukuran huruf **− / +**, lebar maksimum, perataan, dan warna.
+   - Perubahan **tersimpan otomatis**. Salah geser? Tekan **Urungkan**. Centang **Uji teks panjang** untuk memastikan nama panjang tetap muat.
 4. Buat 1 piagam uji → **Unduh PDF** → cetak → periksa posisinya.
 
 ---
@@ -126,12 +127,16 @@ Jangan membuat "Deployment baru", karena URL-nya akan berbeda dan `config.js` ha
 |---|---|
 | `setupAplikasi` | Menyiapkan sheet, akun awal, folder (aman diulang) |
 | `resetAkunAdmin` | Lupa sandi → kembali ke `admin` / `ahe12345` |
-| `cekTemplate` | Mengecek file template di folder Drive |
+| `cekTemplate` | Mengecek file template di folder Drive (Template/Ahe & Template/Ala) |
 | `bersihkanCache` | Memaksa aplikasi membaca ulang data dari Sheets |
 
 Mengedit Google Sheets secara manual otomatis membersihkan cache (trigger `onEdit`).
 
 ---
+
+## Keamanan sesi
+
+Setiap kali link aplikasi dibuka (atau halaman dimuat ulang), aplikasi **selalu mulai dari halaman login**, lalu masuk ke Dashboard. Sesi juga berakhir otomatis setelah 60 menit tidak aktif. Perubahan yang belum sempat terkirim ke Google Sheets tetap aman dan dikirim otomatis setelah login berikutnya.
 
 ## Mengapa aplikasi terasa cepat
 
@@ -139,7 +144,7 @@ Mengedit Google Sheets secara manual otomatis membersihkan cache (trigger `onEdi
 - **Simpan optimistis:** piagam langsung tampil & bisa diunduh; pengiriman ke Google Sheets berjalan di latar belakang. Status terlihat di pil kecil di pojok kanan atas (*Tersimpan / Menyimpan… / Offline*).
 - **Anti data ganda:** ID dibuat di HP, jadi tombol Simpan yang ditekan berkali-kali atau sinyal putus tidak menggandakan data.
 - **Tahan sinyal putus:** perubahan disimpan di HP dan dikirim otomatis saat online kembali.
-- **Cache:** data & gambar template disimpan di browser; login cukup satu kali panggilan ke server; server memakai CacheService dan menulis Sheets secara batch.
+- **Server hemat langkah:** login cukup satu kali panggilan; server membaca cache sekaligus dalam satu panggilan, piagam baru cukup ditambahkan satu baris (bukan menulis ulang seluruh sheet), dan server "dibangunkan" otomatis saat Anda membuka halaman Buat/Pengaturan agar simpan berikutnya tidak menunggu.
 
 ---
 
@@ -151,7 +156,8 @@ Mengedit Google Sheets secara manual otomatis membersihkan cache (trigger `onEdi
 | "Server tidak mengirim data JSON" | Deploy ulang dengan akses **Siapa saja (Anyone)**; pastikan URL berakhiran `/exec` |
 | Login selalu gagal setelah lupa sandi | Jalankan `resetAkunAdmin` di editor |
 | "Terlalu banyak percobaan" | Tunggu 5 menit (pengaman login) |
-| Template tidak muncul | Nama file harus diawali `Piagam_Ahe` / `Piagam_Ala`; jalankan `cekTemplate` |
+| Template tidak muncul | Pastikan gambar ada di folder **Template › Ahe** / **› Ala**, lalu tekan **Muat ulang dari Google Drive** di Pengaturan |
+| Unggah template gagal / lama | Coba lagi (aplikasi otomatis mengecek apakah unggahan sebenarnya berhasil), atau pakai Cara 2 lewat Google Drive |
 | Data yang diedit di Sheets belum muncul | Tarik layar / buka ulang aplikasi; atau jalankan `bersihkanCache` |
 | Unduh PDF gagal pertama kali | Butuh internet untuk memuat pustaka jsPDF (setelah itu tersimpan di cache browser) |
 | iPhone: file terbuka di tab baru | Tekan **Bagikan → Simpan ke Berkas / Simpan Gambar** |
