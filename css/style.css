@@ -824,3 +824,5 @@ a.stat:hover { box-shadow: var(--sh2); transform: translateY(-1px); }
 }
 
 .page-daftar .deco-star.s1 { top: 96px; left: 7%; }
+
+.kal-note { font-size: 12px; margin-top: -4px; }
