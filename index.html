@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FFF8E7">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Piagam AHE — kelola dan cetak piagam kelulusan Lembaga Pendidikan Anak Hebat Indonesia.">
+  <title>Piagam AHE — Anak Hebat Indonesia</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Tampilkan kerangka aplikasi seketika jika sesi masih ada (tanpa kedip halaman login).
+    try { var s = JSON.parse(localStorage.getItem('piagam_state_v1') || 'null'); if (s && s.token && Date.now() - (s.lastActive || 0) < 3600000) document.documentElement.classList.add('has-session'); } catch (e) {}
+  </script>
+</head>
+<body>
+<!-- ============ IKON (SVG sprite) ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs>
+    <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+    <symbol id="i-cloud-check" viewBox="0 0 24 24"><path d="m17 15-5.5 5.5L9 18"/><path d="M5 17.743A7 7 0 1 1 15.71 10h1.79a4.5 4.5 0 0 1 1.5 8.742"/></symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-zoom-in" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></symbol>
+    <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><rect width="10" height="16" x="3" y="6" rx="2"/><path d="M14 4a7 7 0 0 1 7 7"/><path d="m18 11 3 0 0-3"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+    <symbol id="i-trend-up" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+    <symbol id="i-trend-down" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+  </defs>
+</svg>
+
+<!-- =================== HALAMAN LOGIN =================== -->
+<section id="view-login" class="view-login" aria-label="Masuk">
+  <div class="login-deco" aria-hidden="true">
+    <span class="blob blob-y"></span><span class="blob blob-p"></span>
+    <svg class="deco-star s1"><use href="#i-star"/></svg>
+    <svg class="deco-star s2"><use href="#i-star"/></svg>
+    <span class="deco-dot"></span>
+  </div>
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="app-logo"><img src="assets/logo-ahe.png" alt="Logo Ahe" width="96" height="63"></div>
+      <h1 class="login-title">Piagam AHE</h1>
+      <p class="login-sub">Kelola &amp; cetak piagam kelulusan resmi</p>
+      <span class="pill pill-orange">Anak Hebat Indonesia</span>
+    </div>
+    <form id="form-login" class="card login-card" novalidate autocomplete="on">
+      <h2 class="h-card">Masuk Admin</h2>
+      <p class="muted">Gunakan akun admin terdaftar untuk melanjutkan</p>
+      <label class="field">
+        <span class="label">Username <b class="req">*</b></span>
+        <span class="input-wrap has-icon">
+          <svg class="ic in-icon"><use href="#i-user"/></svg>
+          <input class="input" name="username" id="login-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Masukkan username">
+        </span>
+      </label>
+      <label class="field">
+        <span class="label">Kata Sandi <b class="req">*</b></span>
+        <span class="input-wrap has-icon has-action">
+          <svg class="ic in-icon"><use href="#i-lock"/></svg>
+          <input class="input" type="password" name="password" id="login-password" autocomplete="current-password" required placeholder="Masukkan kata sandi">
+          <button type="button" class="in-action" data-toggle-pass aria-label="Tampilkan kata sandi"><svg class="ic"><use href="#i-eye"/></svg></button>
+        </span>
+      </label>
+      <button class="btn btn-primary btn-lg btn-block" type="submit" id="btn-login">
+        <span class="btn-label">Masuk</span><svg class="ic"><use href="#i-arrow-right"/></svg>
+      </button>
+      <div id="login-error" class="alert alert-error" role="alert" hidden>
+        <svg class="ic"><use href="#i-alert"/></svg><span></span>
+      </div>
+      <div id="login-demo" class="alert alert-info" hidden>
+        <svg class="ic"><use href="#i-info"/></svg>
+        <span><b>Mode demo</b> — backend belum dihubungkan. Masuk dengan <b>admin</b> / <b>ahe12345</b>. Data hanya tersimpan di browser ini.</span>
+      </div>
+      <div class="login-foot"><svg class="ic"><use href="#i-shield"/></svg> Sesi aman · Google Apps Script</div>
+    </form>
+  </div>
+</section>
+
+<!-- =================== APLIKASI =================== -->
+<div id="view-app" class="app" data-accent="ahe">
+  <!-- Sidebar (tablet & desktop) -->
+  <aside class="sidebar" aria-label="Navigasi utama">
+    <a class="brand" href="#/dashboard">
+      <span class="brand-logo"><img src="assets/logo-ahe.png" alt="" width="44" height="29"></span>
+      <span><b class="brand-name">Piagam AHE</b><small>Anak Hebat Indonesia</small></span>
+    </a>
+    <nav class="side-nav">
+      <a href="#/dashboard" data-nav="dashboard"><svg class="ic"><use href="#i-dashboard"/></svg>Dashboard</a>
+      <a href="#/buat" data-nav="buat"><svg class="ic"><use href="#i-plus"/></svg>Buat Piagam</a>
+      <a href="#/riwayat" data-nav="riwayat"><svg class="ic"><use href="#i-clock"/></svg>Riwayat Piagam</a>
+      <a href="#/pengaturan" data-nav="pengaturan"><svg class="ic"><use href="#i-settings"/></svg>Pengaturan Sistem</a>
+    </nav>
+    <div class="side-user">
+      <div class="side-user-row">
+        <span class="avatar" data-avatar>AD</span>
+        <span class="side-user-meta"><b data-username>admin</b><small class="online" data-online>Online</small></span>
+      </div>
+      <button class="btn btn-danger-ghost btn-block btn-sm" data-logout><svg class="ic"><use href="#i-logout"/></svg>Keluar</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <a class="topbar-back" href="#/riwayat" id="topbar-back" hidden><svg class="ic"><use href="#i-arrow-left"/></svg><span>Kembali</span></a>
+      <a class="topbar-brand" href="#/dashboard" id="topbar-brand">
+        <span class="brand-logo sm"><img src="assets/logo-ahe.png" alt="" width="36" height="24"></span>
+        <span><b class="brand-name">Piagam AHE</b><small>Anak Hebat Indonesia</small></span>
+      </a>
+      <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+      <div class="topbar-right">
+        <button class="sync-pill" id="sync-pill" type="button" title="Status sinkronisasi">
+          <svg class="ic"><use href="#i-cloud-check"/></svg><span>Tersimpan</span>
+        </button>
+        <a class="avatar avatar-btn" href="#/pengaturan" data-avatar aria-label="Akun admin">AD</a>
+      </div>
+    </header>
+
+    <div class="demo-banner" id="demo-banner" hidden>
+      <svg class="ic"><use href="#i-info"/></svg>
+      <span><b>Mode demo</b> · data hanya di browser ini. Isi <code>GAS_URL</code> di <code>js/config.js</code> untuk menghubungkan Google Sheets.</span>
+    </div>
+
+    <main id="pages">
+      <!-- ============ DASHBOARD ============ -->
+      <section class="page page-dashboard" data-page="dashboard">
+        <div class="alert alert-warn" id="warn-default-pass" hidden>
+          <svg class="ic"><use href="#i-alert"/></svg>
+          <span>Anda masih memakai kata sandi bawaan. <a href="#/pengaturan" class="link">Ganti sekarang</a> agar akun tetap aman.</span>
+        </div>
+        <div class="dash-grid">
+          <div class="dash-main">
+            <div class="hero">
+              <span class="hero-pill" id="hero-unit">ANAK HEBAT INDONESIA</span>
+              <h2 class="hero-title">Halo, <span id="hero-name">Admin</span>! <span class="wave" aria-hidden="true">👋</span></h2>
+              <p class="hero-sub">Siap mencetak dan mendata piagam kelulusan siswa hari ini?</p>
+              <svg class="hero-star" aria-hidden="true"><use href="#i-star"/></svg>
+            </div>
+            <div class="quick">
+              <a class="btn btn-primary btn-lg" href="#/buat/ahe"><svg class="ic"><use href="#i-plus"/></svg>Buat Piagam Ahe</a>
+              <a class="btn btn-orange btn-lg" href="#/buat/ala"><svg class="ic"><use href="#i-plus"/></svg>Buat Piagam Ala</a>
+            </div>
+            <div class="stats">
+              <a class="card stat" href="#/riwayat/ahe">
+                <div class="stat-head"><span>Piagam Ahe</span><span class="stat-ic ic-ahe"><svg class="ic"><use href="#i-book"/></svg></span></div>
+                <b class="stat-num c-ahe" id="stat-ahe">0</b><small>Les Baca AHE</small>
+              </a>
+              <a class="card stat" href="#/riwayat/ala">
+                <div class="stat-head"><span>Piagam Ala</span><span class="stat-ic ic-ala"><svg class="ic"><use href="#i-calc"/></svg></span></div>
+                <b class="stat-num c-ala" id="stat-ala">0</b><small>Hitung "Ala Sekolah"</small>
+              </a>
+              <div class="card stat stat-wide">
+                <div>
+                  <span class="stat-label" id="stat-month-label">Piagam Bulan Ini</span>
+                  <div class="stat-row"><b class="stat-num c-text" id="stat-month">0</b><small>lembar diterbitkan</small></div>
+                </div>
+                <span class="trend" id="stat-trend" hidden></span>
+              </div>
+            </div>
+            <div class="card chart-card">
+              <div class="chart-head">
+                <h3 class="h-card">Piagam per Bulan <small>(12 Bulan)</small></h3>
+                <div class="legend"><span><i class="sw sw-ahe"></i>Ahe</span><span><i class="sw sw-ala"></i>Ala</span></div>
+              </div>
+              <div id="chart" class="chart" role="img" aria-label="Grafik jumlah piagam per bulan"></div>
+              <div id="chart-tip" class="chart-tip" hidden></div>
+              <table class="sr-only" id="chart-table"></table>
+            </div>
+          </div>
+          <div class="dash-side">
+            <div class="section-head">
+              <h3 class="h-sec">Piagam Terbaru</h3>
+              <a href="#/riwayat" class="link">Lihat Semua <svg class="ic"><use href="#i-arrow-right"/></svg></a>
+            </div>
+            <div id="recent-list" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BUAT / EDIT PIAGAM ============ -->
+      <section class="page page-buat" data-page="buat" data-accent="ahe">
+        <div class="seg" id="seg-jenis" role="tablist" aria-label="Jenis piagam">
+          <button type="button" class="seg-btn" role="tab" data-jenis="ahe"><svg class="ic"><use href="#i-book"/></svg><span>Piagam Ahe <em>(Baca)</em></span></button>
+          <button type="button" class="seg-btn" role="tab" data-jenis="ala"><svg class="ic"><use href="#i-calc"/></svg><span>Piagam Ala <em>(Hitung)</em></span></button>
+        </div>
+
+        <div class="buat-grid">
+          <form id="form-piagam" class="card form-card" data-jenis="ahe" novalidate autocomplete="off">
+            <div class="form-head">
+              <div>
+                <h2 class="form-title" id="form-title">Formulir Piagam Ahe</h2>
+                <p class="muted" id="form-sub">Mencetak piagam kemahiran membaca</p>
+              </div>
+              <span class="req-note">* wajib diisi</span>
+            </div>
+            <div class="chip chip-soft" id="draft-note" hidden><svg class="ic"><use href="#i-refresh"/></svg>Draf sebelumnya dipulihkan</div>
+
+            <div class="field" data-field="nomor">
+              <div class="label-row"><label class="label" for="f-nomor">Nomor Piagam</label><span class="badge badge-accent">Otomatis Template</span></div>
+              <input class="input" id="f-nomor" name="nomor" maxlength="120" placeholder="contoh: 045/AHE-SGT/IX/2026" inputmode="text">
+              <small class="hint" id="hint-nomor">Terisi otomatis dari template terakhir, tetap bisa diedit manual.</small>
+            </div>
+
+            <div class="field" data-field="nama">
+              <label class="label" for="f-nama">Nama Lengkap Santri / Siswa <b class="req">*</b></label>
+              <input class="input input-strong" id="f-nama" name="nama" maxlength="150" placeholder="Nama sesuai data siswa" autocapitalize="words" required>
+              <small class="field-error"></small>
+            </div>
+
+            <div class="field" data-field="ttl" data-show="ahe">
+              <label class="label" for="f-ttl">Tempat, Tanggal Lahir <b class="req">*</b></label>
+              <input class="input" id="f-ttl" name="ttl" maxlength="150" placeholder="contoh: Sangatta, 12 Mei 2018" autocapitalize="words">
+              <small class="field-error"></small>
+            </div>
+
+            <div class="field" data-field="kelompok" data-show="ala">
+              <span class="label" id="lbl-kelompok">Kelompok / Tingkat Kemahiran <b class="req">*</b></span>
+              <div class="dropdown" id="dd-kelompok">
+                <button type="button" class="input dd-toggle" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lbl-kelompok">
+                  <i class="dd-dot"></i><span class="dd-value">Pilih kelompok…</span><svg class="ic dd-chev"><use href="#i-chevron-down"/></svg>
+                </button>
+                <ul class="dd-menu" role="listbox" hidden>
+                  <li role="option" tabindex="-1" data-value="Pertambahan &amp; Pengurangan"><span class="dd-check"><svg class="ic"><use href="#i-check"/></svg></span><span class="dd-label">Pertambahan &amp; Pengurangan<small class="dd-tag">Tingkat Dasar</small></span></li>
+                  <li role="option" tabindex="-1" data-value="Perkalian &amp; Pembagian"><span class="dd-check"><svg class="ic"><use href="#i-check"/></svg></span><span class="dd-label">Perkalian &amp; Pembagian<small class="dd-tag">Tingkat Lanjutan</small></span></li>
+                </ul>
+              </div>
+              <input type="hidden" name="kelompok" id="f-kelompok">
+              <small class="field-error"></small>
+            </div>
+
+            <div class="field-row">
+              <div class="field" data-field="unit" data-show="ahe">
+                <label class="label" for="f-unit">Nama Unit Pembelajaran</label>
+                <input class="input" id="f-unit" name="unit" maxlength="150" placeholder="contoh: Unit Sangatta Utara" autocapitalize="words" list="dl-unit">
+              </div>
+              <div class="field" data-field="desa" data-show="ala">
+                <label class="label" for="f-desa">Desa / Kelurahan</label>
+                <input class="input" id="f-desa" name="desa" maxlength="150" placeholder="contoh: Teluk Lingga" autocapitalize="words" list="dl-desa">
+              </div>
+              <div class="field" data-field="tglLulus">
+                <label class="label" for="f-tgl">Tanggal Kelulusan</label>
+                <span class="input-wrap date-wrap">
+                  <input class="input" type="date" id="f-tgl" name="tglLulus">
+                  <svg class="ic date-ic"><use href="#i-calendar"/></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="field" data-field="kepala">
+              <div class="label-row"><label class="label" for="f-kepala">Nama Kepala Unit</label><span class="badge badge-accent">Otomatis Template</span></div>
+              <input class="input" id="f-kepala" name="kepala" maxlength="150" placeholder="contoh: Hj. Sri Wahyuni, S.Pd." list="dl-kepala">
+            </div>
+
+            <datalist id="dl-unit"></datalist><datalist id="dl-desa"></datalist><datalist id="dl-kepala"></datalist>
+
+            <div class="form-actions" id="form-actions">
+              <button type="button" class="btn btn-ghost" id="btn-reset"><svg class="ic"><use href="#i-reset"/></svg><span>Reset</span></button>
+              <button type="button" class="btn btn-outline desk-only" id="btn-save-pdf"><svg class="ic"><use href="#i-download"/></svg><span>Simpan &amp; Unduh PDF</span></button>
+              <button type="submit" class="btn btn-accent btn-grow" id="btn-save"><svg class="ic"><use href="#i-eye"/></svg><span id="btn-save-label">Pratinjau &amp; Simpan</span></button>
+            </div>
+          </form>
+
+          <aside class="card preview-card live-preview" aria-label="Pratinjau langsung">
+            <div class="pc-head">
+              <span class="live-dot"></span>
+              <b>Pratinjau Langsung</b>
+              <small class="muted" id="live-note">Rasio cetak lanskap A4</small>
+              <button type="button" class="icon-btn" id="btn-live-full" aria-label="Layar penuh"><svg class="ic"><use href="#i-maximize"/></svg></button>
+            </div>
+            <div class="canvas-wrap"><canvas id="live-canvas" width="1491" height="1054"></canvas></div>
+            <div class="pc-foot">
+              <span class="tpl-status" id="live-tpl"></span>
+              <span class="muted" id="live-res"></span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ HASIL PIAGAM ============ -->
+      <section class="page page-hasil" data-page="hasil" data-accent="ahe">
+        <div class="hasil-grid">
+          <div class="hasil-left">
+            <div class="alert alert-success" id="hasil-banner" hidden>
+              <span class="ok-dot"><svg class="ic"><use href="#i-check"/></svg></span>
+              <span><b>Piagam berhasil disimpan ke riwayat!</b><small id="hasil-sync">Menyinkronkan ke Google Sheets…</small></span>
+            </div>
+            <div class="card preview-card">
+              <div class="pc-head">
+                <span class="eyebrow" id="hasil-eyebrow">PRATINJAU ASLI AHE</span>
+                <button type="button" class="chip-btn" id="btn-fullscreen"><svg class="ic"><use href="#i-maximize"/></svg>Layar Penuh</button>
+              </div>
+              <div class="canvas-wrap" id="hasil-wrap"><canvas id="hasil-canvas" width="1491" height="1054"></canvas></div>
+            </div>
+            <p class="rotate-hint"><svg class="ic"><use href="#i-rotate"/></svg> Putar HP ke mode lanskap untuk pratinjau lebih besar</p>
+          </div>
+          <div class="hasil-right">
+            <div class="card detail-card" id="hasil-detail"></div>
+            <div class="hasil-actions">
+              <button type="button" class="btn btn-accent btn-lg btn-block" id="btn-pdf"><svg class="ic"><use href="#i-download"/></svg><span>Unduh PDF (Kualitas Cetak A4)</span></button>
+              <button type="button" class="btn btn-ghost btn-lg btn-block btn-accent-text" id="btn-jpg"><svg class="ic"><use href="#i-image"/></svg><span>Unduh Gambar JPG</span></button>
+              <div class="link-row">
+                <a class="btn-link" id="btn-edit" href="#"><svg class="ic"><use href="#i-edit"/></svg>Edit Data Piagam Ini</a>
+                <a class="btn-link" id="btn-new" href="#/buat/ahe"><svg class="ic"><use href="#i-plus"/></svg>Buat Piagam Baru</a>
+              </div>
+            </div>
+            <div class="tip" id="tip-ios" hidden>
+              <svg class="ic"><use href="#i-bulb"/></svg>
+              <span><b>Petunjuk iPhone / Safari:</b> Setelah file terbuka, tekan tombol <b>Bagikan (Share)</b> → pilih <b>Simpan ke Berkas / Simpan Gambar</b>.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RIWAYAT ============ -->
+      <section class="page page-riwayat" data-page="riwayat">
+        <div class="riwayat-tools">
+          <label class="search">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input type="search" id="search" placeholder="Cari nama, nomor, atau unit…" autocomplete="off" enterkeyhint="search">
+            <button type="button" class="in-action" id="search-clear" aria-label="Hapus pencarian" hidden><svg class="ic"><use href="#i-x"/></svg></button>
+          </label>
+          <div class="seg seg-tabs" id="seg-riwayat" role="tablist">
+            <button type="button" class="seg-btn" data-tab="ahe" role="tab">Piagam Ahe <span class="count" id="count-ahe">0</span></button>
+            <button type="button" class="seg-btn" data-tab="ala" role="tab">Piagam Ala <span class="count" id="count-ala">0</span></button>
+          </div>
+        </div>
+        <p class="result-note muted" id="result-note" hidden></p>
+        <div id="riwayat-list" class="list"></div>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-more" hidden>Tampilkan lebih banyak</button>
+      </section>
+
+      <!-- ============ PENGATURAN ============ -->
+      <section class="page page-pengaturan" data-page="pengaturan">
+        <div class="settings-grid">
+          <form class="card set-card" id="form-akun" novalidate autocomplete="off">
+            <div class="set-head"><span class="set-ic ic-ahe"><svg class="ic"><use href="#i-user"/></svg></span><div><h3 class="h-card">Akun Admin</h3><small class="muted">Ganti username &amp; kata sandi</small></div></div>
+            <label class="field"><span class="label">Username Admin</span><input class="input" name="newUsername" id="akun-username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40"></label>
+            <label class="field"><span class="label">Kata Sandi Lama <b class="req">*</b></span>
+              <span class="input-wrap has-action"><input class="input" type="password" name="oldPassword" autocomplete="current-password" placeholder="Wajib untuk menyimpan perubahan"><button type="button" class="in-action" data-toggle-pass aria-label="Tampilkan"><svg class="ic"><use href="#i-eye"/></svg></button></span></label>
+            <label class="field"><span class="label-row"><span class="label">Kata Sandi Baru</span><small class="muted">Min. 8 karakter</small></span>
+              <span class="input-wrap has-action"><input class="input" type="password" name="newPassword" autocomplete="new-password" placeholder="Kosongkan jika tidak diganti"><button type="button" class="in-action" data-toggle-pass aria-label="Tampilkan"><svg class="ic"><use href="#i-eye"/></svg></button></span></label>
+            <label class="field"><span class="label">Ulangi Kata Sandi Baru</span>
+              <input class="input" type="password" name="newPassword2" autocomplete="new-password" placeholder="Ketik ulang sandi baru"></label>
+            <div class="alert alert-error" id="akun-error" hidden><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-akun"><span class="btn-label">Simpan Perubahan Akun</span></button>
+          </form>
+
+          <div class="card set-card">
+            <div class="set-head"><span class="set-ic ic-ala"><svg class="ic"><use href="#i-edit"/></svg></span><div><h3 class="h-card">Template Isian Otomatis</h3><small class="muted">Nilai bawaan saat membuka formulir baru</small></div></div>
+            <div class="tpl-box" data-tpl="ahe">
+              <div class="tpl-box-head"><b class="c-ahe">1. Nilai Bawaan Piagam Ahe</b><span class="badge badge-ahe">AHE</span></div>
+              <label class="field"><span class="label sm">Nomor Template (piagam berikutnya)</span><input class="input input-sm" name="nomor" maxlength="120"></label>
+              <label class="field"><span class="label sm">Nama Kepala Unit</span><input class="input input-sm" name="kepala" maxlength="150"></label>
+              <div class="tpl-actions"><button type="button" class="btn-text" data-tpl-clear>Kosongkan</button><button type="button" class="btn btn-primary btn-sm" data-tpl-save>Simpan</button></div>
+            </div>
+            <div class="tpl-box" data-tpl="ala">
+              <div class="tpl-box-head"><b class="c-ala">2. Nilai Bawaan Piagam Ala</b><span class="badge badge-ala">ALA</span></div>
+              <label class="field"><span class="label sm">Nomor Template (piagam berikutnya)</span><input class="input input-sm" name="nomor" maxlength="120"></label>
+              <label class="field"><span class="label sm">Nama Kepala Unit</span><input class="input input-sm" name="kepala" maxlength="150"></label>
+              <div class="tpl-actions"><button type="button" class="btn-text" data-tpl-clear>Kosongkan</button><button type="button" class="btn btn-orange btn-sm" data-tpl-save>Simpan</button></div>
+            </div>
+            <label class="switch-row">
+              <span><b>Naikkan nomor urut otomatis</b><small class="muted">Setelah piagam disimpan, 045/… menjadi 046/… untuk piagam berikutnya.</small></span>
+              <input type="checkbox" class="switch" id="sw-auto-nomor">
+            </label>
+          </div>
+
+          <div class="card set-card">
+            <div class="set-head"><span class="set-ic ic-yellow"><svg class="ic"><use href="#i-folder"/></svg></span><div><h3 class="h-card">File Template Piagam</h3><small class="muted">Gambar dari folder Drive "Piagam AHE/Template"</small></div><span class="pill" id="tpl-drive-status"></span></div>
+            <div class="file-row" data-file="ahe">
+              <span class="file-thumb thumb-ahe">AHE</span>
+              <span class="file-meta"><b data-fname>—</b><small class="muted" data-fdesc>—</small></span>
+              <button type="button" class="btn-text c-ahe" data-upload="ahe">Ganti</button>
+            </div>
+            <div class="file-row" data-file="ala">
+              <span class="file-thumb thumb-ala">ALA</span>
+              <span class="file-meta"><b data-fname>—</b><small class="muted" data-fdesc>—</small></span>
+              <button type="button" class="btn-text c-ala" data-upload="ala">Ganti</button>
+            </div>
+            <small class="muted note">Format JPG/PNG, lanskap, ± 1500 px (maks. 8 MB). File lama tidak dihapus — hanya diberi nama "_lama".</small>
+          </div>
+
+          <div class="card set-card card-kalibrasi">
+            <div class="set-head"><span class="set-ic ic-ahe"><svg class="ic"><use href="#i-crosshair"/></svg></span><div><h3 class="h-card">Kalibrasi Posisi Teks</h3><small class="muted">Geser posisi isian agar pas dengan garis pada template</small></div></div>
+            <div class="seg seg-sm" id="seg-kal">
+              <button type="button" class="seg-btn" data-jenis="ahe">Piagam Ahe</button>
+              <button type="button" class="seg-btn" data-jenis="ala">Piagam Ala</button>
+            </div>
+            <div class="canvas-wrap kal-canvas"><canvas id="kal-canvas" width="1491" height="1054"></canvas></div>
+            <label class="check-row"><input type="checkbox" id="kal-markers" checked> Tampilkan titik acuan &amp; batas lebar</label>
+            <div id="kal-fields" class="kal-fields"></div>
+            <div class="kal-actions">
+              <button type="button" class="btn btn-ghost btn-sm" id="kal-reset"><svg class="ic"><use href="#i-reset"/></svg>Kembalikan Bawaan</button>
+              <button type="button" class="btn btn-primary btn-sm" id="kal-save"><svg class="ic"><use href="#i-check"/></svg>Simpan Posisi</button>
+            </div>
+          </div>
+
+          <div class="set-foot">
+            <button type="button" class="btn btn-danger-ghost btn-block" data-logout><svg class="ic"><use href="#i-logout"/></svg>Keluar dari Sesi Admin</button>
+            <p class="muted app-ver" id="app-ver"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Navigasi bawah (HP) -->
+  <nav class="bottom-nav" aria-label="Navigasi">
+    <a href="#/dashboard" data-nav="dashboard"><svg class="ic"><use href="#i-dashboard"/></svg><span>Dashboard</span></a>
+    <a href="#/buat" data-nav="buat"><svg class="ic"><use href="#i-plus"/></svg><span>Buat</span></a>
+    <a href="#/riwayat" data-nav="riwayat"><svg class="ic"><use href="#i-clock"/></svg><span>Riwayat</span></a>
+    <a href="#/pengaturan" data-nav="pengaturan"><svg class="ic"><use href="#i-settings"/></svg><span>Pengaturan</span></a>
+  </nav>
+</div>
+
+<!-- Pratinjau layar penuh -->
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Pratinjau layar penuh">
+  <div class="viewer-bar">
+    <b id="viewer-title">Pratinjau</b>
+    <span class="viewer-tools">
+      <button type="button" class="icon-btn dark" data-zoom="-1" aria-label="Perkecil"><svg class="ic"><use href="#i-zoom-out"/></svg></button>
+      <button type="button" class="icon-btn dark" data-zoom="0" aria-label="Ukuran awal"><svg class="ic"><use href="#i-reset"/></svg></button>
+      <button type="button" class="icon-btn dark" data-zoom="1" aria-label="Perbesar"><svg class="ic"><use href="#i-zoom-in"/></svg></button>
+      <button type="button" class="icon-btn dark" id="viewer-close" aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button>
+    </span>
+  </div>
+  <div class="viewer-stage" id="viewer-stage"><canvas id="viewer-canvas"></canvas></div>
+  <p class="viewer-hint">Cubit untuk memperbesar · ketuk dua kali untuk zoom · seret untuk menggeser</p>
+</div>
+
+<div id="overlay-root"></div>
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+<input type="file" id="file-template" accept="image/jpeg,image/png" hidden>
+
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script src="js/certificate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
