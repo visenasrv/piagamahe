@@ -240,7 +240,7 @@
       return { ahe: cari('ahe'), ala: cari('ala') };
     },
     /** "Sangatta, 12 Mei 2018" */
-    ttlSiswa: (sw) => [sw.tempat, U.fmtTgl(sw.tglLahir)].filter(Boolean).join(', ')
+    ttlSiswa: (sw) => [U.hurufKapital(sw.tempat, 'kata'), U.fmtTgl(sw.tglLahir)].filter(Boolean).join(', ')
   };
 
   window.Store = Store;

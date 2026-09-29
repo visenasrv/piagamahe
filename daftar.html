@@ -165,6 +165,7 @@
     [selD, selM, selY].forEach((x) => x.classList.toggle('has-value', !!x.value));
   };
   [selD, selM, selY].forEach((x) => x.addEventListener('change', perbaruiTgl));
+  form.tempat.addEventListener('blur', () => { form.tempat.value = U.hurufKapital(form.tempat.value, 'kata'); });   // "sangatta" → "Sangatta"
   form.addEventListener('input', (e) => { const f = e.target.closest('.field'); if (f) f.classList.remove('invalid'); $('#form-error').hidden = true; });
   form.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
@@ -177,7 +178,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const bersih = (v) => String(v || '').replace(/\s+/g, ' ').trim();
-    const data = { id: idKirim, nama: bersih(form.nama.value), tempat: bersih(form.tempat.value), tglLahir: tglISO(), website: form.website.value };
+    const data = { id: idKirim, nama: bersih(form.nama.value), tempat: U.hurufKapital(bersih(form.tempat.value), 'kata'), tglLahir: tglISO(), website: form.website.value };
     const salah = [];
     if (data.nama.length < 2) salah.push(form.nama);
     if (!data.tempat) salah.push(form.tempat);

@@ -242,11 +242,14 @@
                 <h2 class="form-title" id="form-title">Formulir Piagam Ahe</h2>
                 <p class="muted" id="form-sub">Mencetak piagam kemahiran membaca</p>
               </div>
-              <span class="req-note">* wajib diisi</span>
+              <div class="form-head-side">
+                <span class="req-note">* wajib diisi</span>
+              </div>
             </div>
             <div class="chip chip-soft" id="draft-note" hidden><svg class="ic"><use href="#i-refresh"/></svg>Draf sebelumnya dipulihkan</div>
             <div class="siswa-pick">
-              <button type="button" class="btn btn-ghost btn-sm btn-pick" id="btn-pick-siswa"><svg class="ic"><use href="#i-users"/></svg><span>Ambil dari Data Siswa</span><span class="count" id="pick-count" hidden></span></button>
+              <button type="button" class="btn btn-ghost btn-sm btn-pick" id="btn-pick-siswa"><svg class="ic"><use href="#i-users"/></svg><span><span class="hide-xs">Ambil dari </span>Data Siswa</span><span class="count" id="pick-count" hidden></span></button>
+              <a class="btn btn-ghost btn-sm kal-shortcut" id="btn-kal-shortcut" href="#/pengaturan/kalibrasi/ahe/buat" title="Atur posisi, ukuran & format huruf pada piagam"><svg class="ic"><use href="#i-crosshair"/></svg><span>Atur Posisi Teks</span></a>
               <span class="chip chip-linked" id="siswa-linked" hidden><svg class="ic"><use href="#i-link"/></svg><span></span><button type="button" aria-label="Lepas tautan data siswa" id="btn-unlink"><svg class="ic"><use href="#i-x"/></svg></button></span>
             </div>
 
@@ -320,6 +323,7 @@
               <span class="live-dot"></span>
               <b>Pratinjau Langsung</b>
               <small class="muted" id="live-note">Rasio cetak lanskap A4</small>
+              <a class="chip-btn kal-shortcut-live" id="btn-kal-shortcut2" href="#/pengaturan/kalibrasi/ahe/buat"><svg class="ic"><use href="#i-crosshair"/></svg>Atur Posisi</a>
               <button type="button" class="icon-btn" id="btn-live-full" aria-label="Layar penuh"><svg class="ic"><use href="#i-maximize"/></svg></button>
             </div>
             <div class="canvas-wrap"><canvas id="live-canvas" width="1491" height="1054"></canvas></div>
@@ -420,8 +424,14 @@
 
       <!-- ============ PENGATURAN ============ -->
       <section class="page page-pengaturan" data-page="pengaturan">
+        <nav class="set-tabs" id="set-tabs" role="tablist" aria-label="Sub menu pengaturan">
+          <button type="button" class="set-tab" role="tab" data-set-tab="akun"><svg class="ic"><use href="#i-user"/></svg><span>Akun</span></button>
+          <button type="button" class="set-tab" role="tab" data-set-tab="template"><svg class="ic"><use href="#i-edit"/></svg><span>Template Isian</span></button>
+          <button type="button" class="set-tab" role="tab" data-set-tab="file"><svg class="ic"><use href="#i-folder"/></svg><span>File Template</span></button>
+          <button type="button" class="set-tab" role="tab" data-set-tab="kalibrasi"><svg class="ic"><use href="#i-crosshair"/></svg><span>Kalibrasi Posisi</span></button>
+        </nav>
         <div class="settings-grid">
-          <form class="card set-card" id="form-akun" novalidate autocomplete="off">
+          <form class="card set-card set-narrow" id="form-akun" data-set-panel="akun" novalidate autocomplete="off">
             <div class="set-head"><span class="set-ic ic-ahe"><svg class="ic"><use href="#i-user"/></svg></span><div><h3 class="h-card">Akun Admin</h3><small class="muted">Ganti username &amp; kata sandi</small></div></div>
             <label class="field"><span class="label">Username Admin</span><input class="input" name="newUsername" id="akun-username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40"></label>
             <label class="field"><span class="label">Kata Sandi Lama <b class="req">*</b></span>
@@ -434,8 +444,9 @@
             <button type="submit" class="btn btn-primary btn-block" id="btn-akun"><span class="btn-label">Simpan Perubahan Akun</span></button>
           </form>
 
-          <div class="card set-card">
+          <div class="card set-card" data-set-panel="template">
             <div class="set-head"><span class="set-ic ic-ala"><svg class="ic"><use href="#i-edit"/></svg></span><div><h3 class="h-card">Template Isian Otomatis</h3><small class="muted">Nilai bawaan saat membuka formulir baru</small></div></div>
+            <div class="tpl-grid">
             <div class="tpl-box" data-tpl="ahe">
               <div class="tpl-box-head"><b class="c-ahe">1. Nilai Bawaan Piagam Ahe</b><span class="badge badge-ahe">AHE</span></div>
               <label class="field"><span class="label sm">Nomor Template (piagam berikutnya)</span><input class="input input-sm" name="nomor" maxlength="120"></label>
@@ -450,13 +461,14 @@
               <label class="field"><span class="label sm">Nama Kepala Unit</span><input class="input input-sm" name="kepala" maxlength="150"></label>
               <div class="tpl-actions"><button type="button" class="btn-text" data-tpl-clear>Kosongkan</button><button type="button" class="btn btn-orange btn-sm" data-tpl-save>Simpan</button></div>
             </div>
+            </div>
             <label class="switch-row">
               <span><b>Naikkan nomor urut otomatis</b><small class="muted">Setelah piagam disimpan, 045/… menjadi 046/… untuk piagam berikutnya.</small></span>
               <input type="checkbox" class="switch" id="sw-auto-nomor">
             </label>
           </div>
 
-          <div class="card set-card">
+          <div class="card set-card set-mid" data-set-panel="file">
             <div class="set-head"><span class="set-ic ic-yellow"><svg class="ic"><use href="#i-folder"/></svg></span><div><h3 class="h-card">File Template Piagam</h3><small class="muted">Nama file bebas · otomatis dikompres agar ringan</small></div><span class="pill" id="tpl-drive-status"></span></div>
             <div class="file-row" data-file="ahe">
               <span class="file-thumb thumb-ahe">AHE</span>
@@ -473,7 +485,7 @@
             <b>Cara 2:</b> taruh gambar langsung di Google Drive, folder <b>Piagam AHE › Template › Ahe</b> atau <b>› Ala</b> (nama file bebas), lalu tekan <b>Muat ulang dari Google Drive</b>. Gambar terbaru yang dipakai; template lama dipindah ke folder <b>Arsip</b>.</small>
           </div>
 
-          <div class="card set-card card-kalibrasi" id="card-kalibrasi">
+          <div class="card set-card card-kalibrasi" id="card-kalibrasi" data-set-panel="kalibrasi">
             <div class="set-head">
               <span class="set-ic ic-ahe"><svg class="ic"><use href="#i-crosshair"/></svg></span>
               <div><h3 class="h-card">Kalibrasi Posisi Teks</h3><small class="muted">Cocokkan letak tulisan dengan garis pada template · tersimpan otomatis</small></div>
@@ -484,6 +496,10 @@
                 <button type="button" class="seg-btn" data-jenis="ahe"><svg class="ic"><use href="#i-book"/></svg>Piagam Ahe</button>
                 <button type="button" class="seg-btn" data-jenis="ala"><svg class="ic"><use href="#i-calc"/></svg>Piagam Ala</button>
               </div>
+            <div class="kal-from-buat" id="kal-from-buat" hidden>
+              <svg class="ic"><use href="#i-info"/></svg><span>Pratinjau memakai isian formulir yang sedang Anda buat. Perubahan tersimpan otomatis.</span>
+              <a class="btn btn-primary btn-sm" id="kal-back" href="#/buat/ahe"><svg class="ic"><use href="#i-arrow-left"/></svg>Kembali ke Formulir</a>
+            </div>
               <div class="kal-toggles">
                 <label class="check-row"><input type="checkbox" id="kal-markers" checked> Kotak bantu</label>
                 <label class="kal-sample"><span>Data pratinjau</span><select class="input input-sm" id="kal-sample" aria-label="Data yang ditampilkan di pratinjau"></select></label>
@@ -532,6 +548,7 @@
                   <button type="button" class="seg-btn" data-kapital="besar" title="HURUF BESAR SEMUA">AA BESAR</button>
                   <button type="button" class="seg-btn" data-kapital="kata" title="Huruf Besar Tiap Kata">Aa Tiap Kata</button>
                 </div>
+                <small class="muted kal-note" id="kal-kapital-note"></small>
                 <div class="seg seg-xs" id="kal-align">
                   <button type="button" class="seg-btn" data-align="left">Kiri</button>
                   <button type="button" class="seg-btn" data-align="center">Tengah</button>
@@ -547,7 +564,7 @@
             </div>
           </div>
 
-          <div class="set-foot">
+          <div class="set-foot" data-set-panel="akun">
             <button type="button" class="btn btn-danger-ghost btn-block" data-logout><svg class="ic"><use href="#i-logout"/></svg>Keluar dari Sesi Admin</button>
             <p class="muted app-ver" id="app-ver"></p>
           </div>

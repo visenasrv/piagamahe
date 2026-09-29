@@ -826,3 +826,43 @@ a.stat:hover { box-shadow: var(--sh2); transform: translateY(-1px); }
 .page-daftar .deco-star.s1 { top: 96px; left: 7%; }
 
 .kal-note { font-size: 12px; margin-top: -4px; }
+
+/* ---------- v1.4: sub menu Pengaturan (tab) ---------- */
+.settings-grid { display: block; }
+[data-set-panel] { display: none; }
+[data-set-panel].active { display: block; animation: pageIn .16s ease-out; }
+.set-tabs { display: flex; gap: 4px; padding: 5px; margin-bottom: 16px; border-radius: 18px; background: #F4EBD8; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.set-tabs::-webkit-scrollbar { display: none; }
+.set-tab { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 14px; font: 700 14px var(--font-head); color: var(--muted); white-space: nowrap; transition: background .15s, color .15s, box-shadow .15s; }
+.set-tab .ic { width: 18px; height: 18px; }
+.set-tab:hover { color: var(--text); }
+.set-tab.active { background: var(--surface); color: var(--purple); box-shadow: 0 3px 10px rgba(107, 47, 143, .12); }
+.set-narrow { max-width: 620px; }
+.set-mid { max-width: 820px; }
+.set-foot[data-set-panel].active { display: grid; max-width: 620px; margin: 16px 0 0; }
+.tpl-grid { display: grid; gap: 12px; }
+.tpl-grid .tpl-box { margin-bottom: 0; }
+[data-set-panel="template"] .switch-row { margin-top: 14px; }
+@media (min-width: 900px) {
+  .tpl-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .set-tab { flex: 0 1 auto; padding: 0 20px; }
+  .set-tabs { display: inline-flex; max-width: 100%; }
+}
+@media (max-width: 520px) {
+  .set-tab { padding: 0 12px; font-size: 13.5px; gap: 6px; }
+}
+/* pintasan Kalibrasi di Buat Piagam */
+.form-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
+.kal-shortcut { white-space: nowrap; }
+.kal-shortcut-live { margin-left: auto; }
+.pc-head .kal-shortcut-live + .icon-btn { margin-left: 0; }
+@media (min-width: 1100px) { .siswa-pick .kal-shortcut { display: none; } }
+.siswa-pick .kal-shortcut { color: var(--accent-text); }
+@media (max-width: 1099px) { .kal-shortcut-live { display: none; } }
+.kal-from-buat { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -4px 0 14px; padding: 10px 14px; border-radius: 14px; background: var(--purple-50); color: var(--purple-d); font-size: 13.5px; }
+.kal-from-buat .btn { margin-left: auto; min-height: 38px; }
+@media (max-width: 599px) {
+  .set-tabs { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+  .set-tab { justify-content: flex-start; padding: 0 12px; }
+}
+@media (max-width: 440px) { .hide-xs { display: none; } .siswa-pick .btn { padding: 0 12px; } }

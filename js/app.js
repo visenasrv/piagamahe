@@ -173,7 +173,7 @@
       if (!Store.s.token) return;
       Dropdown.close();
       Kalibrasi.flush();
-      const [p, a, b] = location.hash.replace(/^#\/?/, '').split('/').map((x) => decodeURIComponent(x || ''));
+      const [p, a, b, c] = location.hash.replace(/^#\/?/, '').split('/').map((x) => decodeURIComponent(x || ''));
       let page = p || 'dashboard', title = '', accent = 'ahe', nav = page, back = null;
       switch (page) {
         case 'buat':
@@ -194,7 +194,9 @@
           Siswa.open(); title = 'Data Siswa'; break;
         case 'pengaturan':
           Api.warmup();
-          Pengaturan.render(); title = 'Pengaturan Sistem'; break;
+          Pengaturan.open(a, b, c); title = 'Pengaturan Sistem';
+          if (Pengaturan.tab === 'kalibrasi' && Kalibrasi.fromBuat) { back = Buat.kembaliHref(); nav = 'buat'; }
+          break;
         default:
           page = nav = 'dashboard'; Dashboard.render(); title = 'Dashboard';
       }
@@ -452,6 +454,11 @@
       $('#live-canvas').parentElement.addEventListener('click', () => Viewer.open($('#live-canvas'), 'Pratinjau ' + JENIS_LABEL[this.jenis]));
       mqWide.addEventListener('change', () => this.preview());
       $('#btn-pick-siswa').addEventListener('click', () => this.pilihSiswa());
+      $$('#btn-kal-shortcut, #btn-kal-shortcut2').forEach((b) => b.addEventListener('click', () => {
+        if (this.editId) this.pertahankan = true; else if (this.formId) this.saveDraft();
+      }));
+      // Tempat lahir: otomatis Huruf Kapital di awal kata
+      $('#f-ttl').addEventListener('blur', (e) => { const v = U.hurufKapital(e.target.value, 'kata'); if (v !== e.target.value) { e.target.value = v; this.onInput({ target: e.target }); } });
       $('#btn-unlink').addEventListener('click', () => { this.siswaId = ''; if (!this.editId) this.saveDraft(); this.siswaUI(); toast('Tautan ke data siswa dilepas.', 'info', 1500); });
     },
     defaults(j) {
@@ -477,8 +484,15 @@
       this.restored[jenis] = true;
       this.applyUI(); this.clearErrors(); this.preview();
     },
+    kembaliHref() { return this.editId ? `#/edit/${this.jenis}/${encodeURIComponent(this.editId)}` : `#/buat/${this.jenis}`; },
     openEdit(jenis, id) {
       if (jenis !== 'ahe' && jenis !== 'ala') return false;
+      if (this.pertahankan && this.editId === id && this.jenis === jenis) {   // kembali dari Kalibrasi: isian yang belum disimpan tetap ada
+        this.pertahankan = false; this.locked = false;
+        this.applyUI(); this.preview();
+        return true;
+      }
+      this.pertahankan = false;
       const rec = Data.find(jenis, id);
       if (!rec) { toast('Data piagam tidak ditemukan.', 'error'); return false; }
       this.jenis = jenis; this.editId = id; this.formId = null; this.origTgl = rec.tglLulus || ''; this.locked = false;
@@ -503,6 +517,7 @@
       });
       $('#btn-save-label').textContent = edit ? 'Simpan Perubahan' : 'Pratinjau & Simpan';
       $('#btn-save-pdf').hidden = false;
+      $$('#btn-kal-shortcut, #btn-kal-shortcut2').forEach((b) => b.setAttribute('href', `#/pengaturan/kalibrasi/${j}/buat`));
       this.siswaUI();
       // Saran isian dari riwayat (mempercepat pengetikan)
       const uniq = (arr) => Array.from(new Set(arr.filter(Boolean))).slice(0, 30);
@@ -523,7 +538,7 @@
       let tgl = e.tglLulus.value;
       if (!tgl && this.editId && this.origTgl && !U.isISODate(this.origTgl)) tgl = this.origTgl; // pertahankan teks tanggal lama dari Sheets
       const v = { nomor: g('nomor'), nama: g('nama'), tglLulus: tgl, kepala: g('kepala') };
-      if (this.jenis === 'ahe') { v.ttl = g('ttl'); v.unit = g('unit'); } else { v.kelompok = e.kelompok.value; v.desa = g('desa'); }
+      if (this.jenis === 'ahe') { v.ttl = U.hurufKapital(g('ttl'), 'kata'); v.unit = g('unit'); } else { v.kelompok = e.kelompok.value; v.desa = g('desa'); }
       return v;
     },
     onInput(e) {
@@ -1018,6 +1033,8 @@
     uploadJenis: null,
     init() {
       $('#form-akun').addEventListener('submit', (e) => this.saveAkun(e));
+      $$('#set-tabs .set-tab').forEach((b) => b.addEventListener('click', () => Router.go('#/pengaturan/' + b.dataset.setTab)));
+      $('#kal-back').addEventListener('click', () => { Kalibrasi.flush(); if (Buat.editId) Buat.pertahankan = true; });
       $$('.tpl-box').forEach((box) => {
         const j = box.dataset.tpl;
         box.querySelector('[data-tpl-save]').addEventListener('click', () => this.saveTpl(j));
@@ -1042,7 +1059,23 @@
       });
       Kalibrasi.init();
     },
+    tab: 'akun',
+    open(tab, jenis, dari) {
+      const valid = ['akun', 'template', 'file', 'kalibrasi'];
+      this.tab = valid.includes(tab) ? tab : (this.tab || 'akun');
+      if (this.tab === 'kalibrasi') {
+        Kalibrasi.fromBuat = dari === 'buat';
+        if ((jenis === 'ahe' || jenis === 'ala') && jenis !== Kalibrasi.jenis) { Kalibrasi.flush(); Kalibrasi.jenis = jenis; Kalibrasi.active = 'nama'; }
+        if (Kalibrasi.fromBuat) Kalibrasi.sampleKey = 'form';
+      }
+      this.render();
+    },
     render() {
+      $$('#set-tabs .set-tab').forEach((b) => { const on = b.dataset.setTab === this.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
+      $$('[data-set-panel]').forEach((el) => el.classList.toggle('active', el.dataset.setPanel === this.tab));
+      const kb = $('#kal-from-buat');
+      kb.hidden = !(this.tab === 'kalibrasi' && Kalibrasi.fromBuat);
+      $('#kal-back').setAttribute('href', Buat.kembaliHref());
       const u = $('#akun-username');
       if (document.activeElement !== u) u.value = Store.s.user ? Store.s.user.username : '';
       $$('.tpl-box').forEach((box) => {
@@ -1053,7 +1086,7 @@
       });
       $('#sw-auto-nomor').checked = Store.s.templates.autoNomor !== false;
       this.files();
-      Kalibrasi.render();
+      if (this.tab === 'kalibrasi') Kalibrasi.render();
       $('#app-ver').textContent = `Piagam AHE v${CFG.VERSI || '1.0.0'} · ${Api.demo ? 'Mode demo (belum terhubung)' : 'Terhubung ke Google Apps Script'}`;
     },
     files() {
@@ -1220,7 +1253,13 @@
       $$('#seg-kal .seg-btn').forEach((b) => b.addEventListener('click', () => { if (b.dataset.jenis === this.jenis) return; this.flush(); this.jenis = b.dataset.jenis; this.active = 'nama'; this.render(); }));
       $('#kal-markers').addEventListener('change', () => this.draw());
       $('#kal-sample').addEventListener('change', () => { this.sampleKey = $('#kal-sample').value; this.buildList(); this.draw(); });
-      $$('#kal-kapital .seg-btn').forEach((b) => b.addEventListener('click', () => { this.change((f) => { f.kapital = b.dataset.kapital; }); this.buildList(); }));
+      $$('#kal-kapital .seg-btn').forEach((b) => b.addEventListener('click', () => {
+        const k = b.dataset.kapital;
+        this.change((f) => { f.kapital = k; });
+        const dua = this.samakanKapital(this.active, k);          // format huruf berlaku untuk Ahe & Ala sekaligus
+        this.buildList();
+        toast(`Format huruf ${Cert.DEFAULT[this.jenis].fields[this.active].label} diterapkan ke ${dua ? 'Piagam Ahe & Ala' : 'Piagam ' + JENIS_LABEL[this.jenis]}.`, 'success', 2200);
+      }));
       $$('#kal-stepsize .seg-btn').forEach((b) => b.addEventListener('click', () => {
         this.step = +b.dataset.step;
         $$('#kal-stepsize .seg-btn').forEach((x) => x.classList.toggle('active', x === b));
@@ -1275,6 +1314,7 @@
     sample() {
       const j = this.jenis, key = this.sampleKey || 'last';
       if (key === 'long') return this.LONG[j];
+      if (key === 'form' && Buat.jenis === j) { const v = Buat.values(); if (v.nama) return v; }
       if (key.startsWith('rec:')) { const r = Data.find(j, key.slice(4)); if (r) return r; }
       if (key === 'last') { const r = Data.sorted(j)[0]; if (r) return r; }
       // isi template dari Pengaturan (+ contoh untuk kolom yang tidak punya template)
@@ -1285,6 +1325,8 @@
     buildSampleOptions() {
       const j = this.jenis, recs = Data.sorted(j).slice(0, 12), sel = $('#kal-sample');
       const opts = [];
+      const fv = Buat.jenis === j && Buat.form ? Buat.values() : null;
+      if (fv && fv.nama) opts.push(['form', `Formulir yang sedang diisi: ${fv.nama}`]);
       if (recs.length) opts.push(['last', `Piagam terakhir: ${recs[0].nama}`]);
       opts.push(['tpl', 'Isi template (Pengaturan)']);
       recs.slice(1).forEach((r) => opts.push(['rec:' + r.id, r.nama]));
@@ -1326,9 +1368,26 @@
       $$('.stepper').forEach((st) => { const inp = st.querySelector('input'); if (document.activeElement !== inp) inp.value = Math.round(f[st.dataset.prop]); });
       $$('#kal-align .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.align === f.align));
       $$('#kal-kapital .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.kapital === (f.kapital || 'asli')));
+      const adaDiLain = !!Cert.DEFAULT[this.jenis === 'ahe' ? 'ala' : 'ahe'].fields[this.active];
+      $('#kal-kapital-note').textContent = adaDiLain ? 'Format huruf berlaku untuk Piagam Ahe & Ala.' : `Format huruf berlaku untuk Piagam ${JENIS_LABEL[this.jenis]}.`;
       $$('#kal-colors [data-color]').forEach((b) => b.classList.toggle('active', b.dataset.color.toLowerCase() === String(f.color).toLowerCase()));
       $('#kal-color-custom').value = /^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#2b1b3d';
       const dot = $(`#kal-list [data-k="${this.active}"] .kal-dot`); if (dot) dot.style.background = f.color;
+    },
+    /** Terapkan format huruf kolom yang sama ke jenis piagam lainnya. Mengembalikan true jika kolom itu ada di keduanya. */
+    samakanKapital(key, kapital) {
+      const lain = this.jenis === 'ahe' ? 'ala' : 'ahe';
+      const L = Cert.layout(lain);
+      if (!L.fields[key]) return false;
+      const cur = Store.s.layouts[lain] && Store.s.layouts[lain].fields ? JSON.parse(JSON.stringify(Store.s.layouts[lain])) : { fields: {} };
+      Object.keys(L.fields).forEach((fk) => {
+        if (!cur.fields[fk]) { const f = L.fields[fk]; cur.fields[fk] = { x: f.x, y: f.y, size: f.size, maxW: f.maxW, color: f.color, align: f.align, kapital: f.kapital || 'asli' }; }
+      });
+      cur.fields[key].kapital = kapital;
+      Store.s.layouts[lain] = cur;
+      Store.save();
+      Outbox.push({ type: 'saveLayout', jenis: lain, layout: cur });
+      return true;
     },
     snapshot() {
       this.undo.push(JSON.stringify(this.work));
